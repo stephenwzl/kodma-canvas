@@ -2,6 +2,8 @@
 
 更新日期：2026-11-14。Kodma 基于 FigCraft 二次开发，优先支持 macOS。当前已完成产品讨论、四页高保真 UI 首版、浅色 Design System 和存量稿图标统一。画布抽取与原生接入仍停留在方案阶段；尚未实现 Kodma 的界面改造、账户、云端同步或 Agent 套餐。
 
+上市预热：[创业者篇 · 27 秒定稿分镜](founder-storyboard.md)。
+
 ## 当前交付与下一步
 
 当前设计在 [FigCraft Cowork](https://figma.oldiron.work/) 的协作文件 `kodma` 中维护，文件 ID 为 `e37912c2dd7d1294`。使用已有授权打开该文件；仓库仅记录文件定位、设计规范和进度，不保存邀请 token、截图或设计文件副本。

@@ -1,5 +1,7 @@
 # egui 0.37 local implementation — stage 1 notes and follow-ups
 
+[Kodma documentation](README.md) / FigCraft component maintenance
+
 Current candidate font pin: `37827adc41fd165f9a9234ac40f94dbad353aa69` restores the complete prior Latin catalog
 alongside the migration fallbacks. Central font tests and license checks passed;
 publication is pending approval. Managed run `egui037-figcraft-latin-ci-20261025-0711`

@@ -1,5 +1,7 @@
 # Translating FigCraft
 
+[Kodma documentation](README.md) / FigCraft component maintenance
+
 FigCraft's interface strings live in one TOML catalog per language in
 [`crates/ui-egui/locales/`](../crates/ui-egui/locales). The build bakes every catalog into the
 binary (desktop and web); nothing is read at run time. Preferences ▸ Language picks the language

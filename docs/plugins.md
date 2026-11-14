@@ -1,5 +1,7 @@
 # FigCraft plugins
 
+[Kodma documentation](README.md) / FigCraft engine and tooling
+
 A FigCraft plugin is a WebAssembly module with a small JSON manifest. It acts on the document only
 through FigCraft's commands, the same ones the menus, the CLI, the control channel and the MCP
 server run (`figcraft-cli commands` lists them), so a plugin can do what a script can do, within the

@@ -1,5 +1,7 @@
 # Attribution
 
+[Kodma documentation](docs/README.md) / FigCraft reference host assets
+
 Every asset bundled in this repository (images, icons, fonts, data files) is listed here with its
 author, source and licence. `cargo xtask assets` fails if a file under `assets/`, `docs/brand/` or
 `docs/images/` is missing from this list.

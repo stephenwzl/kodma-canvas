@@ -1,5 +1,7 @@
 # Real-time collaboration protocol (draft)
 
+[Kodma documentation](README.md) / FigCraft engine and tooling
+
 Status: milestone M9. **Step 1 (the core, no networking) is implemented** in `crates/collab`:
 identifiers, the object/property model, change sets, ordering and validation, client
 reconciliation, derived data and the message encoding. **Step 2 is implemented** in

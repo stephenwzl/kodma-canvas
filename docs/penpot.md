@@ -1,5 +1,7 @@
 # Penpot import and export
 
+[Kodma documentation](README.md) / FigCraft engine and tooling
+
 FigCraft reads and writes Penpot 2.x ZIP archives (`penpot/export-files`, version 1)
 in Rust. Import and export run offline on desktop, CLI, MCP and WASM.
 

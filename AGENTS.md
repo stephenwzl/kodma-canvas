@@ -51,21 +51,15 @@ Dependencies and assets use SPDX identifiers. An expression is allowed when ever
 `LicenseRef-Storyteller-Trademark` is not in this list. It covers Storyteller brand marks only, where a repository already says so.
 <!-- craft-house-rules:end -->
 
-# FigCraft — instructions for agents
+# Kodma — instructions for agents
 
-FigCraft is a clean-room, open-source, pure-Rust (egui) reimplementation of the Figma design workflow:
-interface design, auto layout, components and variants, styles and variables, prototyping and
-inspection. It runs natively on macOS, Windows, Linux and FreeBSD, and in the browser via WASM.
-Siblings: `../vectorcraft` (Illustrator-class), `../photocraft` (Photoshop-class), `../designcraft`
-(InDesign-class) and the other Crafting Apps; same conventions.
-
-Repos don't share code.
+Kodma is the product developed in this repository. FigCraft supplies the Rust canvas engine, reference editor, command interfaces and collaboration infrastructure.
 
 ## Start every session here
-1. Read [`ROADMAP.md`](ROADMAP.md) (stage, headline numbers, estimates) and
-   [`docs/gaps.md`](docs/gaps.md) (the ranked work list). Unless the user gives you a task, pick
-   work from the top of `docs/gaps.md`.
-2. Orient → plan → implement + test → verify (screenshot) → record (ROADMAP, devlog) → commit.
+
+1. Read the [Kodma roadmap](ROADMAP.md) and [product decisions and design progress](docs/kodma/README.md). Choose unassigned product work from the next Kodma milestone.
+2. For document state, sessions, Agent execution or sharing, read the [workspace architecture](docs/kodma/workspace-architecture.md). For native hosting, use the [canvas extraction plan](docs/kodma/canvas-editor-extraction.md).
+3. For work on the FigCraft component, read its [architecture](docs/architecture.md) and the relevant [engine gaps](docs/gaps.md). Verify behavior and update the progress record for the affected product or component.
 
 `plan/` is an optional gitignored notebook. Behaviour reference notes may be in `plan/figma/*.md`.
 Do not ask for it, and do not stop when it is absent.
@@ -86,7 +80,7 @@ Do not ask for it, and do not stop when it is absent.
   other product, or from any source whose licence doesn't allow it.** This includes "lookalike"
   redraws of their icons. Breaking this rule is the worst thing you can do in this repo.
 - Every image, icon, font or other asset must be one of:
-  - original work created for FigCraft by a contributor (licensed MIT OR Apache-2.0);
+  - original work created for Kodma or its FigCraft component by a contributor (licensed MIT OR Apache-2.0);
   - OSI open source;
   - public domain / CC0;
   - Creative Commons with redistribution allowed.
@@ -139,7 +133,7 @@ Do not ask for it, and do not stop when it is absent.
 `cargo xtask ci` (fmt, clippy -D warnings, tests, layers, assets, wasm). One task per commit with a
 milestone id in the message (`M2.1: auto layout wrap`). Commit after every landed arc of work.
 
-## Running and looking at the app
+## Running and inspecting the FigCraft reference host
 - `cargo run -p figcraft -- --control <port> [file.figcraft|file.svg|image]`. Pick a free port
   (`python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1])'`);
   sibling apps use the control channel too.
@@ -155,11 +149,8 @@ milestone id in the message (`M2.1: auto layout wrap`). Commit after every lande
   write manifests atomically, delete your target dir when done (disk is limited).
 
 ## Roadmap
-Progress docs: [`ROADMAP.md`](ROADMAP.md) (one-page
-summary and stage), [`docs/target-app-parity.md`](docs/target-app-parity.md) (the authoritative
-assessment), [`docs/gaps.md`](docs/gaps.md) (ranked work list), [`docs/roadmap.md`](docs/roadmap.md)
-(milestones), [`docs/architecture.md`](docs/architecture.md), the per-area `docs/*-parity.md` files
-and the generated [`docs/parity-checklist.md`](docs/parity-checklist.md) (`cargo xtask parity`).
+Product progress belongs in [Kodma’s roadmap](ROADMAP.md) and [design record](docs/kodma/README.md).
+For engine parity work, use the [component baseline](docs/engine-status.md), [assessment](docs/target-app-parity.md), [milestones](docs/roadmap.md) and generated [command checklist](docs/parity-checklist.md).
 When a task lands, update the affected rows and the status line and revision history in the same
 commit. Grade by behaviour against the incumbent, not by whether a menu item exists; err low.
 

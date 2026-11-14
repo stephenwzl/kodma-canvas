@@ -1,5 +1,7 @@
 # figcraft-cli
 
+[Kodma documentation](README.md) / FigCraft engine and tooling
+
 FigCraft without a window: inspect, export, convert and render documents, run command scripts, list
 commands, serve MCP, publish plugins and code connect mappings, and measure performance. Build it with
 `cargo build --release -p figcraft-cli` (binary `target/release/figcraft-cli`).

@@ -1,5 +1,7 @@
 # Contributors in the About window
 
+[Kodma documentation](README.md) / FigCraft component maintenance
+
 **About ▸ Contributors** credits everyone who contributed to FigCraft, and **About ▸ Models** credits
 the AI models named in `Co-Authored-By` trailers.
 

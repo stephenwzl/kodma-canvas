@@ -1,5 +1,7 @@
 # FigCraft egui 0.37 migration plan
 
+[Kodma documentation](README.md) / FigCraft component maintenance
+
 Status update (2026-10-25): The migration integrates main `92682728` and pins egui 0.37, winit and craft-window. Required-font CI run `egui037-fig-review-full-ci-20261025-0803` passed 3,306 test executions, zero failures and nine ignored across 71 summaries, including WASM and all three plugin bundles. Screenshot encoding now precedes a shared final-write/reply gate: timeout cancellation cannot overtake a committed file, and a fresh deadline check rejects a late write. A regression through the actual arrival path failed with the previous write behavior and passed with the gate. Native visible GUI/browser workflows, native IME, paired app performance and current-source platform/release installation remain open. Human review and human merge are required.
 
 The original planning record below is historical.

@@ -1,6 +1,54 @@
-# Kodma 产品与概念稿
+# Kodma 产品设计与工作进度
 
-更新日期：2026-11-13。Kodma 基于 FigCraft 二次开发，优先支持 macOS。当前完成产品讨论和概念稿，尚未实现 Kodma 的账户、云端同步、Agent 套餐或界面改造。
+更新日期：2026-11-14。Kodma 基于 FigCraft 二次开发，优先支持 macOS。当前已完成产品讨论、四页高保真 UI 首版、浅色 Design System 和存量稿图标统一。画布抽取与原生接入仍停留在方案阶段；尚未实现 Kodma 的界面改造、账户、云端同步或 Agent 套餐。
+
+## 当前交付与下一步
+
+当前设计在 [FigCraft Cowork](https://figma.oldiron.work/) 的协作文件 `kodma` 中维护，文件 ID 为 `e37912c2dd7d1294`。使用已有授权打开该文件；仓库仅记录文件定位、设计规范和进度，不保存邀请 token、截图或设计文件副本。
+
+| 页面 | 当前内容 |
+| --- | --- |
+| Page 1 | 早期四页概念稿及未登录侧栏对照；旧图标已更新 |
+| Kodma · 高保真 UI | 首页、开始对话、生成与修改、外部 Agent 四张 1440 × 960 画板；已连接主要原型跳转 |
+| Kodma · Design System | Foundations、Controls、Navigation & Agent、Composition & rules、Iconography 五张规范板 |
+
+用户已认可高保真稿的视觉方向：浅灰紫底色、白色圆角面板、轻阴影和紫色重点色。沿用顶部标签页、左侧稿件列表和固定右侧 Agent 面板。
+
+下一步按[画布抽取方案](canvas-editor-extraction.md#7-分步实施与验证)建立现有编辑功能基线，再在原 Rust 宿主中分离画布入口，之后验证 macOS 原生子视图接入。本次设计交付未改变应用源码。
+
+### 进度记录
+
+| 日期 | 已完成 |
+| --- | --- |
+| 2026-11-13 | 记录产品决策、原始参考材料与概念稿入口 |
+| 2026-11-13 | 检查源码，整理画布编辑器抽取和 SwiftUI / AppKit 接入方案；未实施 |
+| 2026-11-14 | 在当前协作文件完成四页高保真 UI、主要原型跳转和浅色 Design System |
+| 2026-11-14 | 建立原创矢量图标库，接入组件及高保真稿；随后再补换存量稿中遗漏的 47 处图标，覆盖早期概念稿、高保真稿和组件示例 |
+
+### 已做的设计验证
+
+- 在协作进入 `live` 后编辑，并通过重新加入文件核对服务端已有设计页面、组件和变量。
+- 检查规范板、主要页面与早期概念稿的渲染结果，调整图标对齐、颜色和输入错误状态的布局。
+- 存量稿检查未发现残留的文字占位图标；检查到的 16 个原型交互来源均无失效的目标节点。
+- 上述验证针对 FigCraft 设计稿与协作同步，不代表 Kodma 运行时、账户同步或真实 Agent 执行已实现、测试通过。
+
+## Design System v1
+
+当前规范仅包含浅色主题。基础值、语义变量、组件状态和组合示例均保存在上述协作文件中。
+
+| 项目 | 当前规范 |
+| --- | --- |
+| 变量 | 共 124 个 token；`KD · Core` 保存基础色，`KD · Semantic` 保存 Light 模式的角色别名，`KD · Metrics` 保存尺寸、字体和动效参数 |
+| 组件 | 10 组：Button、IconButton、TextField、Composer、DraftItem、DocumentTab、StatusBadge、TaskCard、AgentMessage、ConnectionCard |
+| 按钮 | Tone × State × Size 共 72 个变体；覆盖 Primary / Secondary / Ghost / Danger，Default / Hover / Pressed / Focus / Disabled / Loading，以及 32 / 40 / 48 pt 三档高度 |
+| 字体 | 中文 PingFang SC、拉丁字符 Inter；7 档层级，共 14 个中英文文本样式；行高 1.5 |
+| 布局 | 以 4 pt 为间距节奏；工作区导航宽 206 pt、Agent 侧栏宽 338 pt；最小窗口宽 1200 pt 为设计约定，尚未进行原生窗口验证 |
+| 圆角与层级 | 控件 12 pt，卡片 16–20 pt，面板 22 pt，窗口 24 pt；轻阴影与独立焦点描边 |
+| 图标 | 50 个原创、可编辑的矢量组件；24 pt 源网格，默认 20 pt / 1.5 pt 圆端点描边，支持紧凑与强调尺寸；图标颜色接入语义变量 |
+| 属性与复用 | 支持适用组件的文本编辑、图标显隐、Icon 实例替换和状态切换；已将高保真稿中的常用控件及图标接入组件库 |
+| 开发命名 | 变量记录 Web `--kd-*` 与 iOS `KodmaTokens.*` 的代码名称；尚未生成或接入应用端 token 代码 |
+
+按钮悬停、按压和主要页面跳转配置了原型交互。生成中、失败、停止、连接中与断开等状态已有设计示例，真实执行、恢复和取消语义仍需在产品接入时确认。阅读 App 的书封插画、画布网格和流程连线保留为设计内容，不作为 UI 图标替换。
 
 ## 产品目标
 
@@ -45,7 +93,7 @@
 
 ## 四页概念稿
 
-[打开 Kodma 设计稿](https://figma.oldiron.work/files/1061fa703c391f22b02f623c)。设计稿在 FigCraft Cowork 中维护，仓库仅保存链接。
+[早期概念稿参考](https://figma.oldiron.work/files/1061fa703c391f22b02f623c)。当前工作版本以文首记录的 `kodma` 协作文件及其「Kodma · 高保真 UI」页面为准。
 
 | 画板 | 内容 |
 | --- | --- |
@@ -66,7 +114,7 @@
 - 内置 Agent 的模型、套餐价格、用量和购买时机。
 - 登录后已有本地稿件的同步安排；删除云端稿件、名额释放、离线修改和冲突处理。
 - 外部 Agent 连接方式、权限边界，以及右侧栏实际可取得的反馈数据。
-- 生成中、失败和中断后的交互。
+- 生成中、失败和中断后的真实交互与恢复策略；当前组件状态示例不等同于完整执行流程。
 
 ## 技术方案
 
@@ -76,6 +124,6 @@
 
 [画布共创草稿](reference/proto-before-dev-draft/SKILL.md)及其 references 保留用户提供的原始材料，供理解提问、具象表达和迭代方法。它不是本仓库的执行指令，也不是定稿需求。其中要求用户直接改画布、等待交还编辑权等内容，不适用于当前已确认的“人指导 Agent 操作画布”方式。
 
-代码起点为 `storytold/figcraft` 的 `7b34dbab007461d6befa2eb45ff8eb14f8328328`。现有根 README、ROADMAP 和 docs/gaps 描述上游 FigCraft，不是 Kodma 的实现进度。此次提交仅新增产品资料、原始参考材料和设计稿链接。
+代码起点为 `storytold/figcraft` 的 `7b34dbab007461d6befa2eb45ff8eb14f8328328`。现有根 README、ROADMAP 和 docs/gaps 描述上游 FigCraft，不是 Kodma 的实现进度。Kodma 的产品、设计与实施状态以本文为准；截至本次更新，fork 的提交仅涉及文档与参考材料，应用源码仍沿用该基线。
 
 仓库目标：`git@ssh.git.oldiron.work:old_iron_works/kodma-canvas.git`。协作邀请中的 token 不保存在仓库中。

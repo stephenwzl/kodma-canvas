@@ -46,3 +46,11 @@ egui's default fonts (compiled into the `egui`/`epaint` crates) keep their own l
 | Path | Contributor | Source | Licence | Review |
 |---|---|---|---|---|
 | `crates/ui-egui/locales/ar.toml` | @hussain-hz with OpenAI Codex (AI-assisted) | Original Arabic wording from FigCraft's English catalog and engine command labels; no proprietary localisation consulted | MIT OR Apache-2.0 | Draft; native-speaker review and maintainer approval pending |
+
+## Kodma 创业者篇分镜关键帧
+
+| Path | Source | Licence | Use |
+|---|---|---|---|
+| `docs/kodma/founder-keyframes/01-shutter.png` | Original AI-generated product-film still | MIT OR Apache-2.0 | Opening shutter and return shot |
+| `docs/kodma/founder-keyframes/02-launch.png` | Original AI-generated variation of the opening still | MIT OR Apache-2.0 | App launch |
+| `docs/kodma/founder-keyframes/03-sticker.png` | Original AI-generated variation of the opening still | MIT OR Apache-2.0 | Strawberry word sticker |

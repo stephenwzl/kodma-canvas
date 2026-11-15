@@ -32,3 +32,5 @@
 - **开发 Agent 镜头**：准备带 Kodma 稿件附件的桌面输入框、可辨认的缩略图和一次发送动作。
 - **真机与转场**：配对拍摄片头和片尾的草莓镜头，另录 App 启动、取景和贴纸生成。低保真画板中的手机画面用作机位参考。
 - **品牌与声音**：使用 Kodma 现有 Agent 图标、字标和首页原句。首尾共用同一快门音色。
+
+关键帧原图：[拍摄草莓](founder-keyframes/01-shutter.png) · [点开 App](founder-keyframes/02-launch.png) · [单词贴纸](founder-keyframes/03-sticker.png)。

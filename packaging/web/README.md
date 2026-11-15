@@ -1,5 +1,7 @@
 # Hosting FigCraft for the web
 
+[Kodma documentation](../../docs/README.md) / FigCraft reference host distribution
+
 `figcraft-web-<version>.zip` (from the GitHub release, or `packaging/web/package.sh`) holds a
 static site in `figcraft-web-<version>/`:
 

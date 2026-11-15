@@ -1,5 +1,7 @@
 # FigCraft app icon
 
+[Kodma documentation](../../docs/README.md) / FigCraft reference host assets
+
 A **chameleon**: an engraving portrait in profile with a curled tail, in the Crafting Apps'
 owl-template framing (full-bleed field, head and body filling the tile, body running off the edges).
 

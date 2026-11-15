@@ -1,5 +1,7 @@
 # FigCraft control protocol
 
+[Kodma documentation](README.md) / FigCraft engine and tooling
+
 The desktop app can be driven by other programs (tests, scripts, `figcraft-cli mcp --attach`,
 sibling Crafting Apps) through a loopback socket:
 

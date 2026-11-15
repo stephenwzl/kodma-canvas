@@ -1,8 +1,10 @@
 # FigCraft architecture
 
+[Kodma documentation](README.md) / FigCraft engine and tooling
+
 > **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-04 · **Change:** minor (corrected the file I/O overview to include the existing best-effort `.fig` import and experimental export; earlier: the `vectordrawable` crate, L4: Android Vector Drawable export; the shared hub in `collab-net` and the `figcraft-server` app) · **Target:** Figma Design
 
-How FigCraft is built today. Engine first, a thin swappable UI, everything a command; a Figma-shaped
+Kodma uses this engine for document edits and rendering. For host integration and Agent execution, see the [Kodma workspace architecture](kodma/workspace-architecture.md). The reference editor has a thin swappable UI, command-driven edits and a Figma-shaped
 data model (a scene graph of frames with auto layout, components and variables). ~108,800 lines of
 Rust (2026-10-10).
 

@@ -1,5 +1,7 @@
 # figcraft-server
 
+[Kodma documentation](README.md) / FigCraft engine and tooling
+
 `figcraft-server` keeps FigCraft files for a team and serves their live sessions. A file published
 to it stays there when everyone has left; people open it with a **share link** that lets them
 **edit** it or only **view** it. Edits are kept as a snapshot plus a log of what changed, so a
@@ -676,7 +678,7 @@ or from source (it needs a C compiler for the TLS library; the example files are
 ```sh
 sudo apt install -y build-essential git curl
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && . "$HOME/.cargo/env"
-git clone https://github.com/storytold/figcraft && cd figcraft
+# Run from the Kodma repository root.
 cargo build --release --locked -p figcraft-server
 sudo install -m 755 target/release/figcraft-server /usr/local/bin/
 cd packaging/server
@@ -806,7 +808,7 @@ sudo systemctl start figcraft-server
 - **Not end-to-end encrypted.** TLS (from the reverse proxy) protects files on their way to and from
   the server; on the server they are stored unencrypted, so the operator and anyone who can read
   the data directory can read every file. Tell the people who publish to your server so (the
-  README's [Privacy and online sharing](../README.md#privacy-and-online-sharing) says it for the
+  reference editor guide’s [Privacy and online sharing](engine-guide.md#privacy-and-online-sharing) says it for the
   default public server, which a build can replace or leave out with `FIGCRAFT_DEFAULT_SERVER`
   ([releasing](releasing.md#the-default-server)), and whose terms are [online-sharing-terms.md](online-sharing-terms.md): a
   starting point for your own), and set `operator_contact` and `terms_url` on a public one.

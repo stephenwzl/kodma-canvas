@@ -1,0 +1,242 @@
+# FigCraft reference editor
+
+[Kodma documentation](README.md) / FigCraft reference editor baseline
+
+The reference editor runs the canvas engine used by Kodma. The gallery, feature inventory, build commands and sharing behavior below describe that editor.
+
+## A look around
+
+<table>
+<tr>
+<td width="50%" valign="top">
+  <img src="images/shot-2-components.png" alt="The Ridgeline UI design system open with the Assets panel on the left showing live thumbnails of the Button, Difficulty, Search field, Toggle and icon components; a Button component set of nine variants laid out in a three-by-three grid auto layout is selected, and the Design panel lists its Style (Primary, Tonal, Outline) and State (Default, Hover, Disabled) variant properties" width="100%">
+  <p align="center"><sub><b>Components and variants</b>: component sets, variant properties and the Assets panel · <code>examples/ridgeline-design-system.figcraft</code></sub></p>
+</td>
+<td width="50%" valign="top">
+  <img src="images/shot-3-prototype.png" alt="Four onboarding phone screens in the Prototype tab, joined by green connection curves from the Get started, Continue, Allow location and Not now buttons to the next screens; the Get started button is selected and the Prototype panel shows its On click, Navigate to 2 Interests interaction" width="100%">
+  <p align="center"><sub><b>Prototyping</b>: connections, transitions, back actions and a flow · <code>examples/ridgeline-onboarding.figcraft</code></sub></p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+  <img src="images/shot-4-devmode.png" alt="Developer Mode on the Ridgeline home screen: the frame carries a Ready for dev badge, a Development annotation callout points at the featured trail card, a trail row instance is selected and the Inspect panel shows a Playground preview of it and generated React code with a TrailRow props interface and the instance's title and details values" width="100%">
+  <p align="center"><sub><b>Developer Mode</b>: ready-for-dev status, annotations and React code where component properties become props · <code>examples/ridgeline-app.figcraft</code></sub></p>
+</td>
+<td width="50%" valign="top">
+  <img src="images/shot-5-vector.png" alt="Vector edit mode on a wave path with a gradient, tapered variable-width stroke: its anchor points, Bezier handles and the transform box of the selected points are visible, with the vector edit toolbar at the bottom; above it are a boolean-built mountain mark and an angular-gradient knot of excluded rings" width="100%">
+  <p align="center"><sub><b>Vector networks</b>: points and handles, variable-width strokes, booleans that stay editable · <code>examples/glass-and-vectors.figcraft</code></sub></p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+  <img src="images/shot-6-dashboard-light.png" alt="The light UI theme with a web analytics dashboard for a fictional trail operator: a dark sidebar, KPI cards with sparklines, a grouped bar chart, a donut chart, a table of top trails and an area chart, with the frame's 12-column layout grid showing as tinted columns and its fill linked to a paint style" width="100%">
+  <p align="center"><sub><b>Layout grids and styles, light theme</b>: a 12-column grid, paint, text, effect and grid styles, charts drawn from shapes · <code>examples/ridgeline-studio-dashboard.figcraft</code></sub></p>
+</td>
+<td width="50%" valign="top">
+  <img src="images/shot-7-collab.png" alt="A live session seen from one participant's window: avatars of three people in the top right, a Priya Nair is spotlighting banner with a Follow button, Priya's green cursor and selection outline on the dark home screen's trail card, and Jonas Ortiz's purple cursor and selection on the Start hike button with his cursor chat bubble asking whether the button should stay pinned while scrolling" width="100%">
+  <p align="center"><sub><b>Live sessions</b>: three apps on one <code>figcraft-server</code> file, with cursors, selections, cursor chat and spotlight</sub></p>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+  <img src="images/shot-8-board.png" alt="A board file named Sprint retro on a dot grid: a Sprint 14 retro made from the retrospective template, with Went well, To improve and Next steps sections of sticky notes, vote counts of 3, 2, 1 and 1 on four stickies after a vote has ended, and below it a pull request flow chart from the flow chart template whose shapes are joined by straight and elbow connectors with Yes and No labels; a timer pill in the top right shows 4:30 left with pause, add a minute, stop and Results buttons" width="100%">
+  <p align="center"><sub><b>Boards</b>: a whiteboard file kind with sticky notes, templates, connectors, a shared timer and voting, in the same live sessions</sub></p>
+</td>
+<td width="50%" valign="top">
+  <img src="images/shot-9-devmode-measure.png" alt="Developer Mode on the Ridgeline home screen with the featured trail card selected: red redlines kept on the canvas show 118.3 from the card to the search field, 62.1 from the card to the first trail row and 256.3 along the card's left side, and the Inspect panel's Measurements section lists the three with their values under an Add measurement menu" width="100%">
+  <p align="center"><sub><b>Developer Mode measurements</b>: redlines placed between layers or along a side, saved in the file and following the layers · <code>examples/ridgeline-app.figcraft</code></sub></p>
+</td>
+</tr>
+</table>
+
+## Made in FigCraft
+
+Every design below was built entirely through FigCraft's command API, the same one the MCP server
+exposes to agents, and exported at 2x by FigCraft's own renderer. The source files are in
+[`examples/`](../examples).
+
+<table>
+<tr>
+<td width="33%" valign="top">
+  <img src="images/art-app-home.png" alt="Ridgeline home screen in light mode: a greeting, a search field, filter chips, a featured trail card with an illustrated mountain landscape, a list of nearby trails and a translucent tab bar" width="100%">
+  <p align="center"><sub><b>Home, light</b></sub></p>
+</td>
+<td width="33%" valign="top">
+  <img src="images/art-app-trail.png" alt="Ridgeline trail detail screen: a dusk mountain illustration with glass buttons, a sheet with difficulty tags, the trail name, distance, elevation and duration stats, an elevation profile chart and a Start hike button" width="100%">
+  <p align="center"><sub><b>Trail detail</b></sub></p>
+</td>
+<td width="33%" valign="top">
+  <img src="images/art-app-home-dark.png" alt="The same Ridgeline home screen in dark mode, its colours switched by the Theme variable collection's Dark mode" width="100%">
+  <p align="center"><sub><b>Home, dark</b>: the same frame in the Dark mode</sub></p>
+</td>
+</tr>
+<tr>
+<td colspan="3" valign="top">
+  <img src="images/art-dashboard.png" alt="Ridgeline Studio dashboard: a dark navy sidebar with navigation, KPI cards for active hikers, check-ins, average rating and open incidents with sparklines, a hikes-per-day grouped bar chart with a tooltip, a difficulty donut chart, a top trails table with condition badges and a visitors area chart" width="100%">
+  <p align="center"><sub><b>Ridgeline Studio</b>: a desktop dashboard on a 12-column grid, every chart made of shapes and vectors</sub></p>
+</td>
+</tr>
+<tr>
+<td colspan="2" valign="top">
+  <img src="images/art-glass-weather.png" alt="A glass weather widget over blurred teal, violet, rose and orange colour fields: a frosted card for Lake Louise showing 14 degrees and partly cloudy with a gradient sun behind a boolean-union cloud, an hourly forecast row, and smaller glass cards for air quality, wind and humidity" width="100%">
+  <p align="center"><sub><b>Glass weather</b>: glass and background blur, layer-blurred colour fields, a boolean cloud</sub></p>
+</td>
+<td width="33%" valign="top">
+  <img src="images/art-vector-marks.png" alt="Three tiles on a cream background: a gradient mountain mark made by unioning two peaks and subtracting a sun, a knot of three excluded rings with an angular gradient, and a tapered gradient wave with a leaf and a glowing four-point star" width="100%">
+  <p align="center"><sub><b>Vector marks</b>: union, subtract and exclude, an angular gradient, a variable-width stroke</sub></p>
+</td>
+</tr>
+<tr>
+<td colspan="3" valign="top">
+  <img src="images/art-ds-colour.png" alt="Ridgeline UI colour ramps: six swatches each of Pine greens, Sunset oranges and Slate greys, each labelled with its name and hex value" width="100%">
+  <p align="center"><sub><b>Ridgeline UI</b>: colour ramps where every swatch is a paint style, exported through a slice</sub></p>
+</td>
+</tr>
+</table>
+
+## Features
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>Layouts that build themselves</h3>
+      Auto layout in both directions, with wrap and grid (fixed, hug and `fr` tracks, cells that span), padding, gaps, alignment including text baselines, Hug / Fill / Fixed sizing, min and max sizes, absolute positioning, drag handles for padding and spacing right on the canvas, and arrow keys that move children through the flow, grid cells and nested frames. Constraints and layout grids for everything else.
+    </td>
+    <td width="50%" valign="top">
+      <h3>Components that scale</h3>
+      Main components, instances with overrides that survive edits, component sets with variants, properties, swap instance, detach, reset overrides and go to main component, and an Assets panel with live thumbnails, search and drag-to-canvas into frames and auto layout. Local styles and variables (colour, number, string, boolean) with modes, aliases and scopes, edited in a Variables table and bound to fills, strokes, effects, layout grids and instance properties. Fills, strokes, effects and layout grids reorder by dragging their rows.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>Vectors without compromise</h3>
+      Real vector networks: the Pen and Pencil tools, vector edit mode with its own tools (pen that extends and branches paths, bend, paint bucket fills for any closed area, lasso, cut), point panel with handle mirroring and per-point corner radius, join, split and heal-on-delete, the shape builder (click or drag across the regions of overlapping shapes, strokes and open paths to merge them, Alt to remove them), boolean groups (union, subtract, intersect, exclude) whose operands stay editable on the canvas with the result following every drag, an operation per operand, flatten, outline stroke, arrowheads, dashes, per-side strokes and variable width strokes (width profile presets, and a Variable width tool that drags width points along the path, one side at a time with Alt). Rectangles with smooth (squircle) corners, polygons, stars, and arcs and rings shaped with on-canvas sweep, start and ratio handles or the Design panel's Arc fields.
+    </td>
+    <td width="50%" valign="top">
+      <h3>Paints and effects</h3>
+      Solid, linear, radial, angular and diamond gradients with on-canvas handles, image fills (fill, fit, crop, tile) with adjustments and presets, multiple fills and strokes, every blend mode, drop and inner shadows (spread offsets the outline exactly), layer and background blur (uniform or progressive), noise (mono, duo, multi), texture and glass (refraction, dispersion, frost, light), masks. Files are sRGB or Display P3, with exports tagged with the file's colour profile.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>Type that sets beautifully</h3>
+      Text edited in place on the canvas (with inline IME composition), mixed styles within a paragraph, auto width and auto height, line height, letter and paragraph spacing, decoration, case, lists, OpenType features, variable font axes and text styles, right-to-left and mixed-direction text (Arabic, Hebrew) with the Unicode bidi algorithm, shaped with HarfRust and the open fonts from craft-fonts plus your system fonts.
+    </td>
+    <td width="50%" valign="top">
+      <h3>Prototype and hand off</h3>
+      Connections, triggers, actions and Smart Animate-style transitions, variables with conditionals (if / else if / else built in the interaction editor, expressions like <code>count + 1</code>), flows, a presentation view with device frames, hotspot hints and an Inspect panel, and a live preview pane. Alt to measure distances and padding on the canvas, Inspect mode with measurements, annotations in colour-coded categories, a ready-for-dev list with a focus view and Compare changes (before / after with property-level diffs since a frame was marked ready), and code (CSS, HTML, React, Vue, Leptos, SwiftUI, Compose, ArkUI, Flutter) where components take their properties as parameters, comment threads pinned to frames (replies, @mentions, reactions, read state) and named version history. Export any layer at any scale to PNG, JPG, WebP, SVG or PDF.
+    </td>
+  </tr>
+</table>
+
+<br>
+
+## Built for agents
+
+Every menu item, tool and gesture runs a command from one registry of 400+ commands. The UI, the CLI, the JSON control channel and the MCP server all call the same commands, so anything you can click, a script or an AI agent can do too.
+
+```sh
+# Headless: render and export
+figcraft-cli render landing.figcraft -o landing.png --scale 2
+figcraft-cli export landing.figcraft -o out/ --format svg
+
+# Run a script of commands without a window
+figcraft-cli run build-card.json --out card.figcraft
+
+# Every command, with its parameters
+figcraft-cli commands --filter autoLayout
+
+# Let an agent drive it over MCP (headless, or attached to the running app)
+figcraft-cli mcp
+figcraft-cli mcp --attach 47800
+```
+
+The desktop app also offers a loopback-only control channel (`figcraft --control <port>`) for inspecting UI state, driving tools with pointer and key events, and taking screenshots. See [`docs/control-protocol.md`](control-protocol.md), [`docs/mcp.md`](mcp.md) and [`docs/cli.md`](cli.md).
+
+## Under the hood
+
+- **Engine first:** a pure-data document model and a command engine, with a thin, swappable egui UI on top. Layering is checked at build time across the workspace crates (`cargo xtask layers`).
+- **Persistent data:** the document lives in an immutable ordered map, so undo snapshots are cheap and layout, component sync and text measurement only revisit what changed.
+- **Its own renderer:** tiny-skia on every core for the canvas and exports, with layer blending, effects and masks; booleans from linesweeper, geometry from kurbo, text from skrifa and HarfRust.
+- **Runs in the browser:** the whole engine and UI compile to WebAssembly.
+- **Accessible:** screen readers get names, roles, values and states for the tools, layer rows, fields, dropdowns, tabs and menus (AccessKit on desktop), F6 moves the keyboard between the toolbar, layers, canvas and properties (Tab within them, Escape back to the canvas), the system's reduce-motion setting is honoured, and panel text meets WCAG AA contrast in both themes.
+- **Languages:** English, Russian and Turkish (reviewed by native speakers), and Spanish, French, German, Brazilian Portuguese, Japanese, Korean, Simplified Chinese, Czech, Indonesian, Georgian, Vietnamese and Bosnian drafts, picked in Preferences or taken from the system or browser and switched live; adding a language is one catalog file ([`docs/translating.md`](translating.md)).
+- **Plugins:** sandboxed WebAssembly plugins (a metered, pure-Rust interpreter with a memory cap and no file or network access, in the browser too) that act through the same commands, each run one undo step, within the permissions their manifest asks for. A Rust SDK and four example plugins are in [`plugins/`](../plugins); see [`docs/plugins.md`](plugins.md).
+- **Live sessions (preview):** share the open file from the app (Share ▸ Start sharing: online through a server, or on your local network), give the others the short join code it shows (or the invite link), and edit it together: everyone's changes sync live, with cursors, selections, avatars and follow, and undo takes back only your own changes. Others join from the desktop app (invite links open it) or from the browser build. See [`docs/collab-protocol.md`](collab-protocol.md).
+- **A server of your own (preview):** `figcraft-server` keeps a team's files, publishes them from the app (File ▸ Publish to server…, or Share ▸ Online with your server in Preferences) and hands out share links and join codes that let people edit or only view; files survive restarts and apps reconnect where they were. No accounts yet: links are the access. Releases ship it for Linux, and the desktop app joins over `wss://`; [hosting it on a rented Linux server](server.md#deploy-on-a-linux-server) takes a systemd unit and Caddy or nginx (or Docker). See [`docs/server.md`](server.md).
+- **Never crashes:** no `unwrap`, `expect` or `panic` in shipped code, enforced by clippy; commands run behind a guard so a bug fails one action, not your session.
+- **Clean-room:** implemented from public documentation and observed behaviour only. No proprietary code, file formats, icons or images.
+
+## Run the reference host
+
+Run these commands from the Kodma repository root.
+
+```sh
+cargo run --release -p figcraft            # the desktop app
+cargo run --release -p figcraft-server     # the collaboration server (docs/server.md)
+cargo test --workspace                     # the test suite
+cargo xtask ci                             # fmt, clippy, tests, layering and asset checks
+```
+
+Fonts for the UI and the Text tool come from [craft-fonts](https://github.com/storytold/craft-fonts), cloned next to this repository (`../craft-fonts`); without it FigCraft falls back to your system fonts.
+
+```sh
+git clone https://github.com/storytold/craft-fonts ../craft-fonts
+```
+
+If you clone it after a first build, run `cargo clean -p figcraft-text` once so the next build embeds the fonts.
+
+**Start from a template.** The home screen's Templates tab has eight starter files (a mobile app, a landing page, a dashboard, a design system starter, a wireframe kit, social post sizes, presentation slides and an icon set starter), also under File ▸ New from template…. They are built in code from original, synthetic content, so scripts and agents can open them too: `file.newFromTemplate {template}` ([`docs/mcp.md`](mcp.md#starter-templates)).
+
+For the web build, install [trunk](https://trunkrs.dev/) and run `cargo xtask wasm`.
+
+New contributors and AI agents: start with [`AGENTS.md`](../AGENTS.md), then [`docs/`](.).
+
+Installers for macOS (universal, signed and notarized), Windows (x64, x86 and arm64), Linux (AppImage, `.deb`, `.rpm`, Flatpak and tarball), FreeBSD and the web are attached to each [GitHub release](https://github.com/storytold/figcraft/releases). Maintainers: [`docs/releasing.md`](releasing.md) explains how releases are built, signed and published.
+
+> [!IMPORTANT]
+> **Status:** FigCraft is in **alpha**: about 49% of the way to replacing proprietary tools for real work, by our own estimate. Nearly all tracked interface design actions in the menu checklist are wired ([`docs/parity-checklist.md`](parity-checklist.md)) and the core editor works end to end, but FigCraft opens `.fig` files only best effort, has only a first preview of multiplayer (live sessions hosted from the app or a self-hosted server, with per-person undo and share links to edit or to view; no accounts, teams or cloud yet), runs its own WebAssembly plugins, and hasn't been checked against real design documents. The honest, area-by-area picture is in the [roadmap](engine-status.md) and [`docs/target-app-parity.md`](target-app-parity.md). Expect rough edges and please file issues, or tell us what broke on [Discord](https://discord.gg/artcraft).
+
+## Privacy and online sharing
+
+FigCraft works offline: it has no account and no telemetry, and it contacts no server until you
+share or join a file. Live sessions are a **preview**. Before you share anything that matters,
+know what sharing does:
+
+- **Share ▸ Online uploads the file to a server.** By default that is the public server at
+  `collab.craftapps.dev`; you can set another one, or your own, in Preferences (and a build can
+  ship without it: [`docs/releasing.md`](releasing.md#the-default-server)). The file stays on
+  the server after you stop sharing, until you remove it (Share ▸ Advanced ▸ Remove from server…)
+  or nobody has opened it for 30 days, when a public server deletes it.
+- **It is not end-to-end encrypted.** The connection to the server is encrypted (TLS), but the
+  server stores the file unencrypted and whoever runs the server can read it. Don't share
+  confidential work through a server you don't trust; run your own
+  ([`docs/server.md`](server.md)) or share on the local network instead.
+- **The code or link is the access.** There are no accounts: anyone who has an edit code or link
+  can open and change the file, anyone with a view code or link can open it. Stop sharing revokes
+  them and disconnects everyone else.
+- **Share ▸ Local network involves no server**, but it is not encrypted either: your app hosts
+  the session and others connect to it directly, so use it on networks you trust.
+- **No guarantees.** The public server is offered as is, without backups or uptime promises, and
+  files on it can be removed. Keep your own saved copy of anything you share.
+
+The default server's terms are in [`docs/online-sharing-terms.md`](online-sharing-terms.md).
+
+## License and credits
+
+FigCraft is dual-licensed under [MIT](../LICENSE-MIT) or [Apache-2.0](../LICENSE-APACHE), at your option.
+Copyright (c) 2026 ArtCraft Team and the FigCraft contributors. Required notices are in [NOTICE](../NOTICE).
+
+Every icon in FigCraft is drawn in code or made for this project, and bundled fonts, images and other
+assets keep their own open licenses; each one is listed with its author, source and license in
+[ATTRIBUTION.md](../ATTRIBUTION.md).
+
+The ArtCraft name, wordmark and logos in [`docs/brand/`](brand) are trademarks of the
+ArtCraft Team and are not covered by this license. They may be used only unmodified, and only as
+part of this repository and FigCraft, under [`docs/brand/LICENSE-brand.txt`](brand/LICENSE-brand.txt).
+Forks and modified versions must remove them.
+
+<p align="center">
+  <a href="https://getartcraft.com/"><img alt="ArtCraft" src="https://raw.githubusercontent.com/storytold/vectorcraft/main/docs/brand/artcraft-mark.png" width="28"></a><br>
+  <sub>Made by the <a href="https://getartcraft.com/">ArtCraft</a> team and community.</sub>
+</p>

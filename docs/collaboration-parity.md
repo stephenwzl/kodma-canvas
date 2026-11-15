@@ -1,5 +1,7 @@
 # Collaboration parity
 
+[Kodma documentation](README.md) / FigCraft reference editor baseline
+
 > **Last reviewed:** 2026-10-10 · **Last updated:** 2026-11-06 · **Change:** minor (M9: a joined live session reconnects until you leave and says when it is disconnected, and joining it again merges what you did while disconnected; ; a file shared on the local network can be shared to look at only: a view-only code next to the edit code, picked in the Share popover before or while sharing)
 
 Figma is multiplayer first; FigCraft is local first. **Ready ~13% (estimated):** comments, version

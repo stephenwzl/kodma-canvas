@@ -1,12 +1,14 @@
 # Releasing FigCraft
 
+[Kodma documentation](README.md) / FigCraft component maintenance
+
 Every push to the `release` branch runs `.github/workflows/release.yml`. The workflow builds
 installers for macOS, Windows, Linux and the web, plus a FreeBSD tarball and the collaboration
 server for Linux, then creates or updates a **draft** GitHub Release named `FigCraft v<version>`.
 Nobody sees a draft until a maintainer publishes it.
 
 This is FigCraft's copy of the shared [release playbook](release-playbook.md) (PhotoCraft is the
-reference implementation). User-facing names say **FigCraft**. Files, binaries and ids stay
+reference implementation). The reference editor’s release artifacts carry the **FigCraft** product name. Files, binaries and ids stay
 lowercase (`figcraft-<version>-<platform>-<arch>.<ext>`, `ai.storyteller.figcraft`).
 
 ## FigCraft's names

@@ -1,5 +1,7 @@
 # Interaction measurements
 
+[Kodma documentation](README.md) / FigCraft reference editor baseline
+
 > **Last reviewed:** 2026-11-08 · **Last updated:** 2026-11-08 · **Change:** minor (first record of the interactions measured against Figma, case by case) · **Target:** Figma Design web app, measured 2026-11-08
 
 On 2026-11-08 a set of interactions was measured in Figma's web app and compared with FigCraft's: modifier keys on move, resize and rotate, arrow keys, zoom steps, auto layout Fill and Hug, instances, components, number field scrubbing, sidebar widths, auto-pan at the viewport edge, copy and paste in vector edit mode, duplicate and paste placement, and text-editing keys. Every measurement used synthetic files, driving the UI and reading the Design and Layers panels (field values, dropdown labels, bounding boxes), or counting pixels on screen where a panel could not show the number. No incumbent screenshots are committed. This complements [ui-parity.md](ui-parity.md) and works on gap 4 in [gaps.md](gaps.md), "Interaction fidelity not compared tool by tool". It is not a full pass: each section lists what was covered, and the open questions at the end list what could not be measured.

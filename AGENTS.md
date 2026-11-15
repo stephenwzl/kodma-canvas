@@ -1,7 +1,6 @@
-<!-- craft-house-rules:start core source=dde09ea31e2e457f5b4653a6e76f7cdf55944bdf sha256=540e6cea75d12d0710c3dca89658328e81e508ecef102446ca5bb95b7c0b92bb -->
 ## House rules
 
-These apply in every Craft repository. A later rule may be stricter, not weaker. The source is `standards/house-rules-core.md` in `storytold/craft-contrib`. Propose changes there, not in a copy.
+These rules apply to the Kodma repository.
 
 1. **A person is accountable.** Whoever runs an agent answers for what it opens and for its review comments.
 2. **Check, then claim.** Before writing code, read the issue comments, search pull requests for `#N` and the keywords, and check recent commits on `main`. Comment on the issue first. Release a claim you will not finish.
@@ -10,7 +9,7 @@ These apply in every Craft repository. A later rule may be stricter, not weaker.
 5. **Review the diff before opening a pull request.** Identifiers exist as used, the test fails without the fix, nothing unrelated changed, and the description is true.
 6. **Look for a better pull request.** If another fixes the same thing, close yours when it is better or equal, and say why.
 7. **Report only what ran.** Say what you tested and what you could not run. Without a local build or test, say so and rely on CI before marking ready.
-8. **`main` changes through a pull request.** Do not push to it. Branch protection enforces this. There is no exception.
+8. **只在主分支工作。** 所有开发、文档修改、验证和提交都在 `main` 上进行。禁止创建开发分支。验证后直接推送到 `origin/main`。
 9. **Stop and ask only about** licensing outside the allowlist, publishing, releases, a new remote, secrets, spending money, destructive git, and anything else hard to undo. Otherwise keep working. `plan/` is a gitignored notebook, not rules. Without it, do not ask for it and do not stop.
 10. **Keep secrets and personal details out** of the repository, logs and requests.
 11. **CI stays shared.** Workflows call `storytold/craft-common-actions`. Do not change CI in a feature or fix pull request. If CI cannot cover a change, open an issue there.
@@ -18,7 +17,6 @@ These apply in every Craft repository. A later rule may be stricter, not weaker.
 13. **Instructions must be readable by everyone.** No notes about one machine, and no links to files a reader cannot open. `craftrules` is retired. Do not link to it.
 14. **Keep pull requests moving.** Concurrent pull requests are fine; unanswered actionable feedback is not. Respond in 7 days, a reminder at 14, closure eligible at 30, from when an actionable request waits on the author. Suggestions and unconfirmed bot findings do not start the clock. A fix, explanation or agreed plan resets it; unrelated activity does not. Waiting on a reviewer or maintainer pauses it and does not count against the author. A maintainer decides closure; it is never automatic. Reuse search results, do not poll, and stop at a rate limit.
 15. **No agent attribution.** A pull request does not say an agent wrote it. A repository rule may not require that.
-<!-- craft-house-rules:end -->
 <!-- craft-house-rules:start rust source=dde09ea31e2e457f5b4653a6e76f7cdf55944bdf sha256=387e0ccb4b49e567f60951d7d6fff7305054c89f43ad812b9993dc7c38528013 -->
 ## Rust Craft repositories
 
@@ -51,21 +49,15 @@ Dependencies and assets use SPDX identifiers. An expression is allowed when ever
 `LicenseRef-Storyteller-Trademark` is not in this list. It covers Storyteller brand marks only, where a repository already says so.
 <!-- craft-house-rules:end -->
 
-# FigCraft — instructions for agents
+# Kodma — instructions for agents
 
-FigCraft is a clean-room, open-source, pure-Rust (egui) reimplementation of the Figma design workflow:
-interface design, auto layout, components and variants, styles and variables, prototyping and
-inspection. It runs natively on macOS, Windows, Linux and FreeBSD, and in the browser via WASM.
-Siblings: `../vectorcraft` (Illustrator-class), `../photocraft` (Photoshop-class), `../designcraft`
-(InDesign-class) and the other Crafting Apps; same conventions.
-
-Repos don't share code.
+Kodma is the product developed in this repository. FigCraft supplies the Rust canvas engine, reference editor, command interfaces and collaboration infrastructure.
 
 ## Start every session here
-1. Read [`ROADMAP.md`](ROADMAP.md) (stage, headline numbers, estimates) and
-   [`docs/gaps.md`](docs/gaps.md) (the ranked work list). Unless the user gives you a task, pick
-   work from the top of `docs/gaps.md`.
-2. Orient → plan → implement + test → verify (screenshot) → record (ROADMAP, devlog) → commit.
+
+1. Read the [Kodma roadmap](ROADMAP.md) and [product decisions and design progress](docs/kodma/README.md). Choose unassigned product work from the next Kodma milestone.
+2. For document state, sessions, Agent execution or sharing, read the [workspace architecture](docs/kodma/workspace-architecture.md). For native hosting, use the [canvas extraction plan](docs/kodma/canvas-editor-extraction.md).
+3. For work on the FigCraft component, read its [architecture](docs/architecture.md) and the relevant [engine gaps](docs/gaps.md). Verify behavior and update the progress record for the affected product or component.
 
 `plan/` is an optional gitignored notebook. Behaviour reference notes may be in `plan/figma/*.md`.
 Do not ask for it, and do not stop when it is absent.
@@ -86,7 +78,7 @@ Do not ask for it, and do not stop when it is absent.
   other product, or from any source whose licence doesn't allow it.** This includes "lookalike"
   redraws of their icons. Breaking this rule is the worst thing you can do in this repo.
 - Every image, icon, font or other asset must be one of:
-  - original work created for FigCraft by a contributor (licensed MIT OR Apache-2.0);
+  - original work created for Kodma or its FigCraft component by a contributor (licensed MIT OR Apache-2.0);
   - OSI open source;
   - public domain / CC0;
   - Creative Commons with redistribution allowed.
@@ -139,7 +131,7 @@ Do not ask for it, and do not stop when it is absent.
 `cargo xtask ci` (fmt, clippy -D warnings, tests, layers, assets, wasm). One task per commit with a
 milestone id in the message (`M2.1: auto layout wrap`). Commit after every landed arc of work.
 
-## Running and looking at the app
+## Running and inspecting the FigCraft reference host
 - `cargo run -p figcraft -- --control <port> [file.figcraft|file.svg|image]`. Pick a free port
   (`python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1])'`);
   sibling apps use the control channel too.
@@ -155,11 +147,8 @@ milestone id in the message (`M2.1: auto layout wrap`). Commit after every lande
   write manifests atomically, delete your target dir when done (disk is limited).
 
 ## Roadmap
-Progress docs: [`ROADMAP.md`](ROADMAP.md) (one-page
-summary and stage), [`docs/target-app-parity.md`](docs/target-app-parity.md) (the authoritative
-assessment), [`docs/gaps.md`](docs/gaps.md) (ranked work list), [`docs/roadmap.md`](docs/roadmap.md)
-(milestones), [`docs/architecture.md`](docs/architecture.md), the per-area `docs/*-parity.md` files
-and the generated [`docs/parity-checklist.md`](docs/parity-checklist.md) (`cargo xtask parity`).
+Product progress belongs in [Kodma’s roadmap](ROADMAP.md) and [design record](docs/kodma/README.md).
+For engine parity work, use the [component baseline](docs/engine-status.md), [assessment](docs/target-app-parity.md), [milestones](docs/roadmap.md) and generated [command checklist](docs/parity-checklist.md).
 When a task lands, update the affected rows and the status line and revision history in the same
 commit. Grade by behaviour against the incumbent, not by whether a menu item exists; err low.
 

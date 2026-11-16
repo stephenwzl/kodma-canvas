@@ -2,6 +2,8 @@
 
 从[产品设计与进度](kodma/README.md)了解稿件、画布和 Agent 如何交互。实施前阅读[工作区架构](kodma/workspace-architecture.md)和[画布接入方案](kodma/canvas-editor-extraction.md)，当前里程碑见[产品路线图](../ROADMAP.md)。
 
+分阶段的实施规格、验收标准和迭代记录见 [spec 目录](../spec/README.md)。当前阶段为 [S001：独立画布入口](../spec/001-canvas-editor/spec.md)。
+
 以下资料描述 Kodma 使用的 FigCraft 技术组件。命令、crate、包名和文件后缀与现有实现一致；兼容性数据对应上游编辑器的评估日期。
 
 ## 引擎、协议与工具

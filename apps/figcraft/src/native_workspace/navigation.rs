@@ -5,7 +5,10 @@ use objc2::{MainThreadMarker, rc::Retained};
 use objc2_app_kit::{NSBox, NSTextField};
 pub(super) struct Navigation {
     page_title: Retained<NSTextField>,
-    page: style::Button,
+    tree: super::navigation_tree::Tree,
+    layers_title: Retained<NSTextField>,
+    add_page: style::Button,
+    owner: Option<u64>,
     account: style::Button,
     rules: Vec<Retained<NSBox>>,
     design: Retained<NSBox>,
@@ -22,10 +25,11 @@ impl Navigation {
         let tabs = top.contentView().ok_or("missing tabs")?;
         let page_title = label(mtm, "页面", 14., 0x736e69);
         nav.addSubview(&page_title);
-        let page = style::Button::new(mtm, &nav, "Page", 0xf7f5f2, None, 12.);
-        page.icon("grid", 0x736e69);
-        page.leading();
-        page.enabled(false);
+        let tree = super::navigation_tree::Tree::new(mtm, &nav);
+        let layers_title = label(mtm, "图层", 14., 0x736e69);
+        nav.addSubview(&layers_title);
+        let add_page = style::Button::new(mtm, &nav, "", 0xf7f5f2, None, 0.);
+        add_page.icon("plus", 0x736e69);
         let account = style::Button::new(mtm, &nav, "我的账户", 0xf7f5f2, None, 12.);
         account.icon("grid", 0x736e69);
         account.leading();
@@ -52,19 +56,32 @@ impl Navigation {
         tabs.addSubview(&top_rule);
         let edge = panel(mtm, 0xdfdcd8);
         inspector.addSubview(&edge);
-        Ok(Self { page_title, page, account, rules, design, agent, share, header_rule, top_rule, edge })
+        Ok(Self { page_title, tree, layers_title, add_page, owner: None, account, rules, design, agent, share, header_rule, top_rule, edge })
     }
-    pub fn sync(&self, s: &Snapshot, w: f64, h: f64) {
+    pub fn actions(&mut self) -> Vec<figcraft_ui_egui::workspace::Action> {
+        let mut actions = self.tree.actions();
+        if self.add_page.pressed()
+            && let Some(uid) = self.owner
+        {
+            actions.push(figcraft_ui_egui::workspace::Action::OwnedCommand(uid, "page.add"));
+        }
+        actions
+    }
+    pub fn sync(&mut self, s: &Snapshot, w: f64, h: f64) {
+        self.owner = if s.home { None } else { s.active };
+        let divider = self.tree.sync(s, h);
         self.page_title.setHidden(s.home);
-        self.page.view.setHidden(s.home);
+        self.layers_title.setHidden(s.home);
+        self.add_page.view.setHidden(s.home);
+        self.add_page.enabled(!s.busy);
         self.account.view.setHidden(s.home);
-        self.page_title.setFrame(rect(36., h - 405., 180., 26.));
-        self.page.frame(26., h - 461., 190., 44.);
-        self.page.title(s.page_name.as_deref().unwrap_or(""));
+        self.page_title.setFrame(rect(36., h - 142., 140., 26.));
+        self.add_page.frame(185., h - 148., 36., 36.);
+        self.layers_title.setFrame(rect(36., h - divider - 48., 150., 26.));
         self.account.frame(26., 32., 160., 44.);
         for (index, rule) in self.rules.iter().enumerate() {
             rule.setHidden(s.home);
-            rule.setFrame(rect(26., if index == 0 { h - 350. } else { 104. }, 190., 1.));
+            rule.setFrame(rect(26., if index == 0 { h - divider } else { 104. }, 190., 1.));
         }
         let body = h - 84.;
         self.edge.setFrame(rect(0., 0., 1., body));

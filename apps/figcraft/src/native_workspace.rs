@@ -17,6 +17,7 @@ mod hero;
 mod home;
 mod inspector;
 mod navigation;
+mod navigation_tree;
 mod style;
 mod tabs;
 mod toolbar;
@@ -24,6 +25,8 @@ mod toolbar;
 const LEFT: f64 = 242.0;
 const TOP: f64 = 84.0;
 const RIGHT: f64 = 408.0;
+// canvas/selection: editor overlay only, never an object paint or serialized property.
+const CANVAS_SELECTION: egui::Color32 = egui::Color32::from_rgb(0x67, 0x38, 0xef);
 
 pub struct Host {
     window: Retained<NSWindow>,
@@ -125,6 +128,7 @@ impl Host {
         actions.extend(self.toolbar.actions());
         actions.extend(self.tabs.take_actions());
         actions.extend(self.controls.take_actions());
+        actions.extend(self.navigation.actions());
         let navigation = !actions.is_empty();
         if let Some(commit) = self.properties.take_commit(inspector, navigation) {
             actions.push(figcraft_ui_egui::workspace::Action::Property(commit));
@@ -155,6 +159,26 @@ impl Host {
         let bounds = self.canvas.bounds();
         let w = bounds.size.width;
         let h = bounds.size.height;
+        // Size parents before child scroll views: AppKit otherwise clamps their initial
+        // top offset against a zero-sized viewport and opens the inspector at its bottom.
+        if self.geometry != Some((w, h, snapshot.home)) {
+            self.geometry = Some((w, h, snapshot.home));
+            self.left.setFrame(rect(0.0, 0.0, LEFT, h));
+            // WinitView is flipped on this backend; native panel content views are not.
+            // Convert only the panel origins, preserving AppKit's native text coordinates.
+            let (top_y, body_y) = panel_origins(self.canvas.isFlipped(), h);
+            self.top.setFrame(rect(LEFT, top_y, (w - LEFT).max(0.0), TOP));
+            self.right.setFrame(rect(w - RIGHT, body_y, RIGHT, (h - TOP).max(0.0)));
+            self.home.setFrame(rect(LEFT, body_y, (w - LEFT).max(0.0), (h - TOP).max(0.0)));
+            self.right.setHidden(snapshot.home);
+            self.home.setHidden(!snapshot.home);
+            self.brand.setFrame(rect(36.0, h - 77.0, 140.0, 33.0));
+            self.drafts.setFrame(rect(36.0, h - 160.0, 180.0, 24.0));
+            self.drafts.setHidden(true);
+            self.design.setFrame(rect(40.0, h - TOP - 58.0, 65.0, 30.0));
+            self.greeting.setFrame(rect(78.0, h - 314.0, 500.0, 100.0));
+            self.headline.setFrame(rect(78.0, h - 399.0, 650.0, 90.0));
+        }
         self.controls.sync(
             recents,
             error,
@@ -169,27 +193,9 @@ impl Host {
         self.toolbar.sync(&snapshot, w, h, self.canvas.isFlipped());
         self.tabs.sync(&snapshot, (w - LEFT).max(0.0));
         self.properties.sync(&inspector, snapshot.busy, (h - TOP).max(0.0), &self.window);
-        if self.geometry != Some((w, h, snapshot.home)) {
-            self.geometry = Some((w, h, snapshot.home));
-            self.left.setFrame(rect(0.0, 0.0, LEFT, h));
-            // WinitView is flipped on this backend; native panel content views are not.
-            // Convert only the panel origins, preserving AppKit's native text coordinates.
-            let (top_y, body_y) = panel_origins(self.canvas.isFlipped(), h);
-            self.top.setFrame(rect(LEFT, top_y, (w - LEFT).max(0.0), TOP));
-            self.right.setFrame(rect(w - RIGHT, body_y, RIGHT, (h - TOP).max(0.0)));
-            self.home.setFrame(rect(LEFT, body_y, (w - LEFT).max(0.0), (h - TOP).max(0.0)));
-            self.right.setHidden(snapshot.home);
-            self.home.setHidden(!snapshot.home);
-            self.brand.setFrame(rect(36.0, h - 77.0, 140.0, 33.0));
-            self.drafts.setFrame(rect(36.0, h - 160.0, 180.0, 24.0));
-            self.drafts.setHidden(snapshot.home);
-            self.design.setFrame(rect(40.0, h - TOP - 58.0, 65.0, 30.0));
-            self.greeting.setFrame(rect(78.0, h - 314.0, 500.0, 100.0));
-            self.headline.setFrame(rect(78.0, h - 399.0, 650.0, 90.0));
-        }
         let busy = snapshot.busy;
         CanvasHost {
-            accent: Some(egui::Color32::from_rgb(0x50, 0x65, 0xcc)),
+            accent: Some(CANVAS_SELECTION),
             left_inset: LEFT as f32,
             top_inset: TOP as f32,
             right_inset: RIGHT as f32,

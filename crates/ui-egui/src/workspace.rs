@@ -23,6 +23,7 @@ pub struct Selection {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Snapshot {
     pub documents: Vec<Document>,
+    pub navigation: crate::workspace_navigation::Navigation,
     pub active: Option<u64>,
     pub home: bool,
     pub busy: bool,
@@ -49,6 +50,8 @@ pub enum Action {
     AnswerClose(u64, crate::windows::CloseAnswer),
     Property(crate::workspace_properties::Commit),
     Command(&'static str),
+    Page(u64, u64),
+    Layer(u64, u64, u64),
     OwnedCommand(u64, &'static str),
 }
 
@@ -84,9 +87,36 @@ impl FigApp {
         }
         self.ui.last_error = None;
         match action {
+            Action::Page(owner, page) => {
+                if !self.ui.home
+                    && self.shows(owner)
+                    && self.session.ds().is_ok_and(|d| d.uid == owner && d.page.0 != page)
+                    && self.run_user("page.select", serde_json::json!({"id":page})).is_some()
+                {
+                    // Native rows can take the pointer without an egui PointerGone event.
+                    // The old page's hover must not draw over the newly selected page.
+                    self.clear_navigation_hover();
+                }
+            }
+            Action::Layer(owner, page, node) => {
+                if !self.ui.home
+                    && self.shows(owner)
+                    && self.session.ds().is_ok_and(|d| {
+                        d.uid == owner
+                            && d.page.0 == page
+                            && d.doc.node(figcraft_doc::NodeId(node)).is_some_and(|n| !n.is_page() && d.doc.ancestors(n.id).contains(&d.page))
+                    })
+                {
+                    self.run_user("select.set", serde_json::json!({"ids":[node]}));
+                }
+            }
             Action::OwnedCommand(owner, id) => {
                 if !self.ui.home && self.session.ds().is_ok_and(|d| d.uid == owner) && self.shows(owner) {
+                    let page = self.session.ds().ok().map(|d| d.page);
                     self.run_user(id, serde_json::json!({}));
+                    if self.session.ds().ok().map(|d| d.page) != page {
+                        self.clear_navigation_hover();
+                    }
                 }
             }
             Action::Command(id) => {
@@ -138,6 +168,13 @@ impl FigApp {
         }
     }
 
+    fn clear_navigation_hover(&mut self) {
+        if let Ok(d) = self.session.ds_mut() {
+            d.hover = None;
+        }
+        self.session.pointer_left();
+    }
+
     fn workspace_index(&self, uid: u64) -> Option<usize> {
         self.session.docs.iter().position(|d| d.uid == uid && self.shows(uid))
     }
@@ -148,6 +185,7 @@ impl FigApp {
         let ds = self.session.ds().ok();
         let home = self.ui.home || !self.has_files();
         Snapshot {
+            navigation: self.workspace_navigation(),
             documents: self
                 .session
                 .docs

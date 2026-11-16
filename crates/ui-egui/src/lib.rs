@@ -36,6 +36,7 @@ pub mod ui_scale;
 pub mod widgets;
 pub mod windows;
 pub mod workspace;
+pub mod workspace_navigation;
 pub mod workspace_properties;
 
 #[cfg(test)]

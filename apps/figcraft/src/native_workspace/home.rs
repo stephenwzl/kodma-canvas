@@ -133,6 +133,8 @@ impl Controls {
         self.new.paint(if is_home { 0xffffff } else { 0xf7f5f2 });
         self.new.view.setBorderWidth(if is_home { 1. } else { 0. });
         self.search.view.setHidden(!is_home);
+        self.scroll.setHidden(!is_home);
+        self.new.view.setHidden(!is_home);
         if changed || self.geometry != Some(key) {
             self.geometry = Some(key);
             self.new.frame(if is_home { 26. } else { 180. }, height - if is_home { 172. } else { 168. }, if is_home { 190. } else { 36. }, 44.);

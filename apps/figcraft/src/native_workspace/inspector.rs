@@ -43,6 +43,9 @@ impl Properties {
         scroll.setAutohidesScrollers(true);
         scroll.setDrawsBackground(false);
         let content = NSView::initWithFrame(NSView::alloc(mtm), rect(0.0, 0.0, 408.0, 660.0));
+        // Only the native inspector gets a backing store. Static labels/plates must survive
+        // Metal canvas repaints; this does not replace or reparent the original render layer.
+        content.setWantsLayer(true);
         scroll.setDocumentView(Some(&content));
         let mut controls = Vec::new();
         for field in Field::ALL {

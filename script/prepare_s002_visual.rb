@@ -3,6 +3,7 @@
 # artwork is exported separately to ignored dist/s002-visual/{shelf,detail}.svg.
 require_relative 'lib/canvas_control'
 require 'fileutils'
+require 'base64'
 root = File.expand_path('..', __dir__)
 c = CanvasControl.new(Integer(ARGV.fetch(0, '17982')))
 begin
@@ -12,7 +13,7 @@ begin
   c.run('page.setBackground', {color: '#FFFFFF'})
   frames = []
   [['shelf', '我的书架', 290], ['detail', '阅读详情', 674]].each do |file, name, x|
-    result = c.run('file.import', {path: File.join(root, 'dist/s002-visual', "#{file}.svg"), x: x, y: 288})
+    result = c.run('file.import', {data: Base64.strict_encode64(File.binread(File.join(root, 'dist/s002-visual', "#{file}.svg"))), name: "#{file}.svg", x: x, y: 288})
     id = result.fetch('id')
     c.run('node.set', {ids: [id], props: {name: name, cornerRadius: 27, fills: ['#FFFCF7'], strokes: ['#D8D2DE'], strokeWeight: 1}})
     c.run('effect.add',{ids:[id],type:'dropShadow',effect:{type:'dropShadow',color:'#2B174B12',offset:[0,12],radius:28,spread:0}})
@@ -26,8 +27,13 @@ begin
     c.run('shape.rectangle',{x:x,y:839,width:170,height:32,props:{cornerRadius:10,fills:[fill]}})
     c.run('text.create',{text:text,x:x+42,y:846,props:{fontFamily:'PingFang SC',fontSize:12,fills:['#121212']}})
   end
+  # These are real document groups, not a curated or hardcoded native layer list.
+  roots=c.request('ui.workspace').fetch('snapshot').fetch('navigation').fetch('layers').select{|n|n['depth']==0}
+  flow=c.run('node.create',{type:'frame',name:'阅读流程',x:362,y:839,width:570,height:32,props:{fills:[],clip:false}}).fetch('id')
+  c.run('node.reparent',{ids:roots.reject{|n|frames.include?(n['id'])}.map{|n|n['id']},parent:flow})
+  [flow,*frames.reverse].each_with_index{|id,index|c.run('node.reorder',{id:id,index:index})}
   c.run('view.rulers',{on:false})
-  c.run('view.set',{zoom:1,cx:637,cy:522})
+  c.run('view.set',{zoom:1,cx:643.5,cy:521})
   c.run('select.set',{ids:[frames.last]})
   path=File.join(root,'dist/s002-visual/阅读记录 App.figcraft')
   c.run('file.saveAs',{path:path})
@@ -39,6 +45,7 @@ begin
   c.run('file.open',{path:path})
   c.run('select.set',{ids:[frames.last]})
   c.request('ui.set',{home:false})
+  c.run('view.set',{zoom:1,cx:637,cy:522})
   puts JSON.pretty_generate({path:path,frames:frames,kind:'visual fixture; no functionality acceptance'})
 ensure
   c.close

@@ -15,7 +15,7 @@
 | [画布输入](../../crates/ui-egui/src/canvas/input.rs) | 原生输入拥有键盘时禁用临时平移及缩放工具键 | 焦点切换时不误改画布；松开前补齐同帧遗漏的末次移动，保持原有事务；IME 路径不替换 |
 | [控制状态](../../crates/ui-egui/src/app/control.rs) | ui.inspect 返回 canvasHost 和实际画布范围 | 外部 Agent 能分辨宿主状态；命令、鉴权及目标文档处理沿用原实现 |
 | [参数与桌面入口](../../apps/figcraft/src/main.rs) | 仅画布与原生验证模式，保留默认启动方式 | 原模式的标题栏、窗口管理与后台逻辑保留；原生区域按 egui 界面缩放换算 |
-| [AppKit 验证宿主](../../apps/figcraft/src/native_canvas.rs) | 同窗原生输入框与宽度滑块，显式焦点和区域同步 | 保持原 contentView、图层与事件循环，升级时重查 winit 的窗口假定 |
+| [AppKit 验证宿主](../../apps/figcraft/src/native_canvas.rs) | 同窗原生输入框、宽度滑块与输入源选择，显式焦点和区域同步 | 保持原 contentView、图层与事件循环，升级时重查 winit 的窗口假定 |
 
 ## 原生承载方式及限制
 
@@ -45,7 +45,7 @@ ruby script/verify_canvas_host.rb 17981
 ./script/build_and_run.sh --reference --verify --control 17982
 ```
 
-脚本只停止名为 KodmaCanvas 的验证进程，使用独立的临时配置目录（默认系统临时目录下的 `kodma-canvas-validation`，可通过 `KODMA_CANVAS_CONFIG_DIR` 指定），构建应用束并运行；不修改其他 FigCraft 安装或使用其稿件。生成的截图、状态与 MCP 证据保存在 gitignored 的 `dist/s001-evidence`。界面中的输入框和滑块是验证控件，不是 Kodma 产品设计。
+脚本只停止名为 KodmaCanvas 的验证进程，使用独立的临时配置目录（默认系统临时目录下的 `kodma-canvas-validation`，可通过 `KODMA_CANVAS_CONFIG_DIR` 指定），构建应用束并运行；不修改其他 FigCraft 安装或使用其稿件。生成的截图、状态与 MCP 证据保存在 gitignored 的 `dist/s001-evidence`。界面中的输入框、滑块和输入源选择是验证控件，不是 Kodma 产品设计。
 
 宿主回归使用：
 
@@ -65,3 +65,9 @@ cargo test -p figcraft --bin figcraft args_tests
 ## 同帧指针释放修复
 
 真实鼠标续验发现，UI 在同帧收到移动和松开时，只把松开发给引擎，丢失最后一次预览更新；整个手势同帧时可能完全不移动。释放路径现在在坐标变化时先发送 Move，再发送 Up，保持一次事务。默认参考编辑器同样受益，未替换输入循环或引擎工具。`canvas_fixes_tests::a_batched_drag_keeps_its_release_position_and_one_undo_step` 覆盖两种模式和两类事件批次，实际窗口拖动及回读见[进度记录](progress.md)。
+
+## 系统输入法与原生焦点
+
+验证宿主的输入源选择使用 [NSTextInputContext](https://developer.apple.com/documentation/appkit/nstextinputcontext) 的可用源、当前源与本地化名称 API，只操作已经启用的源。原生字段接手后，等待 eframe 关闭画布 IME，再在后续 tick 激活原生文本上下文；不拦截、翻译或制造中文输入事件。窗口非 key 或字段没有编辑器时不激活。
+
+FigApp 在宿主键盘归属为原生时清除未提交的画布预编辑，防止输入围栏跳过取消事件后留下旧预览；原编辑会话和光标保留。该适配有先失败后通过的回归。真实系统逐键输入、取消、替换及焦点往返结果见[迭代进度](progress.md)，候选浮窗位置尚未直接观察，不能据输入成功推定其定位已通过。默认 FigCraft 未启用宿主策略时沿用原路径。

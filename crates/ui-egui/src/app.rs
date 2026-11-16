@@ -223,6 +223,17 @@ impl FigApp {
     /// One frame of the window drawing now.
     pub(crate) fn frame(&mut self, ui: &mut egui::Ui) {
         let ctx = ui.ctx().clone();
+        // A native field now owns the platform text context. Its events are fenced below,
+        // including the old context's cancellation, so clear that uncommitted preview here.
+        // Keep the canvas edit/caret alive; returning to it starts a fresh composition.
+        if self.canvas_host.is_some_and(|host| !host.keyboard)
+            && self.session.ds().is_ok_and(|ds| ds.text_edit.as_ref().is_some_and(|edit| edit.preedit.is_some()))
+        {
+            if let Err(error) = figcraft_engine::textedit::preedit(&mut self.session, "", None) {
+                self.toast(error.to_string());
+            }
+            self.sync_preedit();
+        }
         // Bind this input batch before controls or pointer input can replace its composing
         // target/caret. Outgoing IME receipts run after mutation and cannot authorize it.
         let ime_input = shortcuts::ImeInputBaseline::capture(self);

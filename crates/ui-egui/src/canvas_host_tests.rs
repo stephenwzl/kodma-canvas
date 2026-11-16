@@ -99,6 +99,31 @@ fn native_keyboard_owner_blocks_text_without_ending_the_canvas_editor() {
 }
 
 #[test]
+fn native_focus_cancels_the_canvas_preedit_without_ending_its_text_edit() {
+    let mut session = Session::new();
+    let node = id(&session.execute("text.create", &json!({"text": "Hi", "x": 40, "y": 40})).unwrap());
+    let mut ui = canvas(session);
+    figcraft_engine::textedit::begin(&mut ui.app.session, node, Some(2), false).unwrap();
+    ui.frame(vec![Event::Ime(ImeEvent::Preedit { text: "ni".into(), active_range_chars: Some(2..2) })]);
+    assert!(ui.app.preedit_view().is_some());
+    ui.app.canvas_host.as_mut().unwrap().keyboard = false;
+    let output = ui.frame_output(vec![Event::Text("native".into()), Event::Ime(ImeEvent::Commit("你".into()))]);
+    let edit = ui.app.session.ds().unwrap().text_edit.as_ref().unwrap();
+    assert!(edit.preedit.is_none(), "the inactive canvas must not retain a composition owned by its old native context");
+    assert!(ui.app.preedit_view().is_none());
+    assert!(output.platform_output.ime.is_none());
+    let text = |ui: &Ui| match &ui.app.session.doc().unwrap().node(node).unwrap().kind {
+        NodeKind::Text(text) => text.characters.clone(),
+        _ => panic!("not text"),
+    };
+    assert_eq!(text(&ui), "Hi");
+    ui.app.canvas_host.as_mut().unwrap().keyboard = true;
+    ui.frame(vec![Event::Ime(ImeEvent::Preedit { text: "hao".into(), active_range_chars: Some(3..3) })]);
+    ui.frame_raw_with_discard(RawInput { events: vec![Event::Ime(ImeEvent::Commit("好".into()))], ..Default::default() });
+    assert_eq!(text(&ui), "Hi好", "returning to the canvas starts a fresh composition and commits once");
+}
+
+#[test]
 fn hidden_panel_does_not_destroy_an_explicit_crop_target() {
     use base64::Engine as _;
     let mut session = Session::new();

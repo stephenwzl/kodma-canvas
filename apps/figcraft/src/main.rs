@@ -81,7 +81,7 @@ impl eframe::App for App {
     /// changes, and schedule recovery repaints on the app clock.
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         #[cfg(target_os = "macos")]
-        if let Some(host) = &self.native_canvas {
+        if let Some(host) = &mut self.native_canvas {
             let mut policy = host.sync();
             // AppKit uses native logical points; egui's interface zoom changes its point size.
             policy.right_inset /= ctx.zoom_factor().max(0.01);

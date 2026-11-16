@@ -5,31 +5,53 @@ use objc2::{MainThreadMarker, MainThreadOnly};
 use objc2_app_kit::{NSBezelStyle, NSBox, NSButton, NSButtonType, NSFont, NSScrollView, NSTextField, NSView};
 use objc2_foundation::{NSPoint, NSString};
 
-use super::{color, rect};
+use super::{color, panel, rect, style};
 use figcraft_ui_egui::workspace::{Action, RecentFile};
 
 struct Row {
     file: RecentFile,
-    button: Retained<NSButton>,
+    button: style::Button,
 }
 
 pub(super) struct Controls {
-    new: Retained<NSButton>,
-    open: Retained<NSButton>,
-    home: Retained<NSButton>,
+    new: style::Button,
+    open: style::Button,
+    home: style::Button,
+    search: style::Button,
+    settings: style::Button,
+    underline: Retained<NSBox>,
     error: Retained<NSTextField>,
     scroll: Retained<NSScrollView>,
     rows_view: Retained<NSView>,
     rows: Vec<Row>,
     previous_error: Option<String>,
-    geometry: Option<(f64, f64, bool)>,
+    geometry: Option<(f64, f64, bool, bool)>,
 }
 
 impl Controls {
-    pub(super) fn install(mtm: MainThreadMarker, left: &NSBox, top: &NSBox, home_panel: &NSBox) -> Result<Self, String> {
-        let new = button(mtm, "新建稿件");
-        let open = button(mtm, "打开稿件…");
-        let home = button(mtm, "首页");
+    pub(super) fn install(mtm: MainThreadMarker, left: &NSBox, top: &NSBox, _home_panel: &NSBox) -> Result<Self, String> {
+        let left_content = left.contentView().ok_or("missing navigation")?;
+        let top_content = top.contentView().ok_or("missing tabs")?;
+        let new = style::Button::new(mtm, &left_content, "新建稿件", 0xffffff, Some(0xdfdcd8), 12.);
+        new.icon("plus", 0x121212);
+        new.control.setFont(Some(&NSFont::systemFontOfSize(14.)));
+        let open = style::Button::new(mtm, &left_content, "打开稿件…", 0xf7f5f2, None, 12.);
+        open.icon("folder", 0x121212);
+        open.leading();
+        let home = style::Button::new(mtm, &top_content, "首页", 0xf7f5f2, None, 12.);
+        home.icon("home", 0x121212);
+        let underline = panel(mtm, 0x121212);
+        top_content.addSubview(&underline);
+        home.control.setFont(Some(&NSFont::systemFontOfSize(14.)));
+        let search = style::Button::new(mtm, &left_content, "搜索", 0xf7f5f2, Some(0xd4d0cc), 12.);
+        search.icon("search", 0x736e69);
+        search.leading();
+        search.control.setFont(Some(&NSFont::systemFontOfSize(16.)));
+        search.enabled(false);
+        let settings = style::Button::new(mtm, &left_content, "设置", 0xf7f5f2, None, 12.);
+        settings.icon("settings", 0x736e69);
+        settings.leading();
+        settings.enabled(false);
         let error = NSTextField::wrappingLabelWithString(&NSString::new(), mtm);
         error.setFont(Some(&NSFont::systemFontOfSize(13.0)));
         error.setTextColor(Some(&color(0xa83030)));
@@ -41,46 +63,57 @@ impl Controls {
         let rows_view = NSView::initWithFrame(NSView::alloc(mtm), rect(0.0, 0.0, 190.0, 300.0));
         scroll.setDocumentView(Some(&rows_view));
         let left = left.contentView().ok_or("native navigation has no content view")?;
-        left.addSubview(&new);
+
         left.addSubview(&scroll);
         left.addSubview(&error);
-        top.contentView().ok_or("native tabs have no content view")?.addSubview(&home);
-        home_panel.contentView().ok_or("native home has no content view")?.addSubview(&open);
-        Ok(Self { new, open, home, error, scroll, rows_view, rows: Vec::new(), previous_error: None, geometry: None })
+
+        Ok(Self { new, open, home, search, settings, underline, error, scroll, rows_view, rows: Vec::new(), previous_error: None, geometry: None })
     }
 
     pub(super) fn take_actions(&self) -> Vec<Action> {
         let mut actions = Vec::new();
-        if pressed(&self.new) {
+        if self.new.pressed() {
             actions.push(Action::New);
         }
-        if pressed(&self.open) {
+        if self.open.pressed() {
             actions.push(Action::Open);
         }
-        if pressed(&self.home) {
+        if self.home.pressed() {
             actions.push(Action::Home);
         }
         for row in &self.rows {
-            if pressed(&row.button) {
+            if row.button.pressed() {
                 actions.push(Action::Recent(row.file.path.clone()));
             }
         }
         actions
     }
 
-    pub(super) fn sync(&mut self, recents: Vec<RecentFile>, error: Option<String>, busy: bool, width: f64, height: f64) {
+    pub(super) fn sync(
+        &mut self,
+        recents: Vec<RecentFile>,
+        error: Option<String>,
+        busy: bool,
+        is_home: bool,
+        active_name: Option<&str>,
+        width: f64,
+        height: f64,
+    ) {
         let changed = self.rows.iter().map(|r| &r.file).ne(recents.iter());
         if changed {
             for row in &self.rows {
-                row.button.removeFromSuperview();
+                row.button.view.removeFromSuperview();
             }
             self.rows.clear();
             if let Some(mtm) = MainThreadMarker::new() {
                 for file in recents {
                     let title: String = file.name.chars().take(80).collect();
-                    let button = button(mtm, &title);
-                    button.setToolTip(Some(&NSString::from_str(&file.path)));
-                    self.rows_view.addSubview(&button);
+                    let button = style::Button::new(mtm, &self.rows_view, &title, 0xf7f5f2, None, 12.);
+                    button.icon("folder", 0x121212);
+                    button.leading();
+                    button.control.setFont(Some(&NSFont::systemFontOfSize(16.)));
+                    button.control.setToolTip(Some(&NSString::from_str(&file.path)));
+
                     self.rows.push(Row { file, button });
                 }
             }
@@ -91,31 +124,48 @@ impl Controls {
             self.error.setToolTip(error.as_deref().map(NSString::from_str).as_deref());
             self.previous_error = error;
         }
-        let key = (width, height, self.previous_error.is_some());
+        self.home.paint(if is_home { 0xf7f5f2 } else { 0xffffff });
+        let page_changed = self.geometry.is_some_and(|g| g.3 != is_home);
+        let key = (width, height, self.previous_error.is_some(), is_home);
+        self.home.show_icon(!is_home);
+        self.underline.setHidden(!is_home);
+        self.underline.setFrame(rect(58., 9., 52., 3.));
+        self.new.paint(if is_home { 0xffffff } else { 0xf7f5f2 });
+        self.new.view.setBorderWidth(if is_home { 1. } else { 0. });
+        self.search.view.setHidden(!is_home);
         if changed || self.geometry != Some(key) {
             self.geometry = Some(key);
-            self.new.setFrame(rect(26.0, height - 144.0, 190.0, 40.0));
-            self.home.setFrame(rect(42.0, 9.0, 84.0, 42.0));
-            self.open.setFrame(rect(78.0, height - 84.0 - 464.0, 180.0, 44.0));
+            self.new.frame(if is_home { 26. } else { 180. }, height - if is_home { 172. } else { 168. }, if is_home { 190. } else { 36. }, 44.);
+            self.new.title(if is_home { "新建稿件" } else { "" });
+            self.new.icon_offset(if is_home { 55. } else { 10. });
+            self.home.frame(42.0, 9.0, 84.0, 42.0);
+            self.search.frame(26., height - 232., 190., 44.);
+            self.settings.frame(if is_home { 26. } else { 180. }, 24., if is_home { 140. } else { 36. }, 44.);
+            self.settings.title(if is_home { "设置" } else { "" });
+            self.open.title("");
+            self.open.frame(180., 74., 36., 36.);
             self.error.setFrame(rect(26.0, 16.0, 190.0, 180.0));
-            let bottom = if self.previous_error.is_some() { 208.0 } else { 16.0 };
-            let viewport = (height - 200.0 - bottom).max(1.0);
+            let bottom = if self.previous_error.is_some() { 208.0 } else { 140.0 };
+            let list_top = if is_home { 278. } else { 177. };
+            let bottom = if is_home { bottom } else { height - 340. };
+            let viewport = (height - list_top - bottom).max(1.0);
             self.scroll.setFrame(rect(26.0, bottom, 190.0, viewport));
             let rows_height = (self.rows.len() as f64 * 52.0).max(viewport);
             self.rows_view.setFrame(rect(0.0, 0.0, 190.0, rows_height));
             for (index, row) in self.rows.iter().enumerate() {
-                row.button.setFrame(rect(0.0, rows_height - (index + 1) as f64 * 52.0, 172.0, 44.0));
+                row.button.frame(0.0, rows_height - 44.0 - index as f64 * 52.0, 190.0, 44.0);
             }
             let clip = self.scroll.contentView();
-            let y = if changed { rows_height - viewport } else { clip.bounds().origin.y.min(rows_height - viewport) };
+            let y = if changed || page_changed { rows_height - viewport } else { clip.bounds().origin.y.min(rows_height - viewport) };
             clip.scrollToPoint(NSPoint::new(0.0, y.max(0.0)));
             self.scroll.reflectScrolledClipView(&clip);
         }
         for button in [&self.new, &self.open, &self.home] {
-            button.setEnabled(!busy);
+            button.enabled(!busy);
         }
         for row in &self.rows {
-            row.button.setEnabled(!busy);
+            row.button.enabled(!busy);
+            row.button.paint(if !is_home && active_name == Some(row.file.name.as_str()) { 0xeeece8 } else { 0xf7f5f2 });
         }
     }
 }
@@ -126,6 +176,8 @@ pub(super) fn button(mtm: MainThreadMarker, title: &str) -> Retained<NSButton> {
     // Safe AppKit state polling avoids an unsafe Objective-C target/selector bridge.
     button.setButtonType(NSButtonType::PushOnPushOff);
     button.setBezelStyle(NSBezelStyle::Push);
+    button.setBordered(false);
+    button.setFont(Some(&NSFont::systemFontOfSize(14.0)));
     button
 }
 

@@ -39,6 +39,7 @@ impl FigApp {
     pub(crate) fn observe_presentation(&mut self) {
         let window = self.windows.current;
         self.windows.presentation(&self.session, window);
+        self.observe_property_target();
     }
 
     /// [`run`](Self::run) for something the user did (a dialog, a drop, a paste, a recent file):

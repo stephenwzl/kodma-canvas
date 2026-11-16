@@ -1,0 +1,77 @@
+//! Native page and account chrome; no fabricated account or collaboration state.
+use super::{label, panel, rect, style};
+use figcraft_ui_egui::workspace::Snapshot;
+use objc2::{MainThreadMarker, rc::Retained};
+use objc2_app_kit::{NSBox, NSTextField};
+pub(super) struct Navigation {
+    page_title: Retained<NSTextField>,
+    page: style::Button,
+    account: style::Button,
+    rules: Vec<Retained<NSBox>>,
+    design: Retained<NSBox>,
+    agent: style::Button,
+    share: style::Button,
+    header_rule: Retained<NSBox>,
+    top_rule: Retained<NSBox>,
+    edge: Retained<NSBox>,
+}
+impl Navigation {
+    pub fn install(mtm: MainThreadMarker, left: &NSBox, right: &NSBox, top: &NSBox) -> Result<Self, String> {
+        let nav = left.contentView().ok_or("missing navigation")?;
+        let inspector = right.contentView().ok_or("missing inspector")?;
+        let tabs = top.contentView().ok_or("missing tabs")?;
+        let page_title = label(mtm, "页面", 14., 0x736e69);
+        nav.addSubview(&page_title);
+        let page = style::Button::new(mtm, &nav, "Page", 0xf7f5f2, None, 12.);
+        page.icon("grid", 0x736e69);
+        page.leading();
+        page.enabled(false);
+        let account = style::Button::new(mtm, &nav, "我的账户", 0xf7f5f2, None, 12.);
+        account.icon("grid", 0x736e69);
+        account.leading();
+        account.enabled(false);
+        let mut rules = Vec::new();
+        for _ in 0..2 {
+            let rule = panel(mtm, 0xdfdcd8);
+            nav.addSubview(&rule);
+            rules.push(rule);
+        }
+        let design = panel(mtm, 0xf7f5f2);
+        design.setCornerRadius(10.);
+        inspector.addSubview(&design);
+        // Host title is added after this plate during layout through its existing retained view.
+        let agent = style::Button::new(mtm, &inspector, "Kodma Agent", 0xffffff, None, 10.);
+        agent.icon("spark", 0x736e69);
+        agent.enabled(false);
+        let share = style::Button::new(mtm, &inspector, "分享", 0x121212, None, 18.);
+        share.control.setContentTintColor(Some(&super::color(0xffffff)));
+        share.enabled(false);
+        let header_rule = panel(mtm, 0xdfdcd8);
+        inspector.addSubview(&header_rule);
+        let top_rule = panel(mtm, 0xdfdcd8);
+        tabs.addSubview(&top_rule);
+        let edge = panel(mtm, 0xdfdcd8);
+        inspector.addSubview(&edge);
+        Ok(Self { page_title, page, account, rules, design, agent, share, header_rule, top_rule, edge })
+    }
+    pub fn sync(&self, s: &Snapshot, w: f64, h: f64) {
+        self.page_title.setHidden(s.home);
+        self.page.view.setHidden(s.home);
+        self.account.view.setHidden(s.home);
+        self.page_title.setFrame(rect(36., h - 405., 180., 26.));
+        self.page.frame(26., h - 461., 190., 44.);
+        self.page.title(s.page_name.as_deref().unwrap_or(""));
+        self.account.frame(26., 32., 160., 44.);
+        for (index, rule) in self.rules.iter().enumerate() {
+            rule.setHidden(s.home);
+            rule.setFrame(rect(26., if index == 0 { h - 350. } else { 104. }, 190., 1.));
+        }
+        let body = h - 84.;
+        self.edge.setFrame(rect(0., 0., 1., body));
+        self.design.setFrame(rect(24., body - 60., 65., 40.));
+        self.agent.frame(100., body - 60., 175., 40.);
+        self.share.frame(322., body - 58., 62., 36.);
+        self.header_rule.setFrame(rect(24., body - 80., 360., 1.));
+        self.top_rule.setFrame(rect(42., 0., (w - 325.).max(0.), 1.));
+    }
+}

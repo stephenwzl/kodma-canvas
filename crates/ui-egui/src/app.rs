@@ -30,6 +30,7 @@ impl FigApp {
         let pages_height = session.prefs.pages_height;
         Self {
             canvas_host: None,
+            workspace_properties: Default::default(),
             ui: UiState { left_width, right_width, pages_height, ..UiState::default() },
             session,
             canvas: canvas::CanvasState::default(),

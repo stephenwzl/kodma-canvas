@@ -241,6 +241,19 @@ impl NativeEditMenu {
             item.setKeyEquivalent(if active { key } else { &empty });
         }
     }
+
+    /// Hidden standard actions for the workspace's synchronous menu dispatcher. They have no
+    /// key equivalents: only the public AppKit menu action API invokes them.
+    pub(super) fn dispatch_helper(&self, tag: isize) {
+        self.set_active(false);
+        self.item.setTag(tag);
+        if let Some(menu) = self.item.submenu() {
+            menu.setAutoenablesItems(false);
+            for (item, _) in &self.keys {
+                item.setEnabled(true);
+            }
+        }
+    }
 }
 
 impl Drop for NativeEditMenu {
@@ -252,13 +265,13 @@ impl Drop for NativeEditMenu {
 /// Defer activation until eframe has disabled the former canvas IME. A source popup can also
 /// interrupt a native field without ever giving the canvas keys, so track the field editor itself.
 #[derive(Default)]
-struct NativeInputFocus {
+pub(super) struct NativeInputFocus {
     editing: bool,
     pending: bool,
 }
 
 impl NativeInputFocus {
-    fn tick(&mut self, editing: bool, key_window: bool) -> bool {
+    pub(super) fn tick(&mut self, editing: bool, key_window: bool) -> bool {
         let activate = editing && self.pending && key_window;
         self.pending = editing && (!self.editing || (self.pending && !activate));
         self.editing = editing;

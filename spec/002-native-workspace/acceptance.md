@@ -1,6 +1,6 @@
 # S002 验收 case：从首页进入双稿件工作区
 
-更新日期：2026-11-16。状态：完整 S002 验收计划；I1–I3 框架、首页文件与标签操作已完成本轮验收，I4–I5 未执行。[规格](spec.md)定义开发范围；结果和证据写入[进度](progress.md)。高保真依据、纳入与未纳入项见[设计对照](design-reference.md)。I1 可运行 `./script/accept_s002_i1.sh`，详情见[实施说明](implementation.md)；I2 可运行 `./script/accept_s002_i2.sh`，见[本轮亲验步骤](i2-home.md)。I3 可运行 `./script/accept_s002_i3.sh`，见[标签与关闭亲验步骤](i3-tabs.md)。下述完整属性夹具与全量流程继续随 I4–I5 提供。
+更新日期：2026-11-16。状态：完整 S002 验收计划；I1–I3 框架、首页文件与标签操作已完成本轮验收，I4 工程验收完成、中文由用户亲验，I5 未执行。[规格](spec.md)定义开发范围；结果和证据写入[进度](progress.md)。高保真依据、纳入与未纳入项见[设计对照](design-reference.md)。I1 可运行 `./script/accept_s002_i1.sh`，详情见[实施说明](implementation.md)；I2 可运行 `./script/accept_s002_i2.sh`，见[本轮亲验步骤](i2-home.md)。I3 可运行 `./script/accept_s002_i3.sh`，见[标签与关闭亲验步骤](i3-tabs.md)。I4 可运行 `./script/accept_s002_i4.sh`，见[属性与中文亲验步骤](i4-properties.md)。完整闭环继续随 I5 验证。
 
 ## 开发完成时需准备的内容
 

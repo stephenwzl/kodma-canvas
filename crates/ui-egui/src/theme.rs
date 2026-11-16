@@ -71,6 +71,10 @@ pub fn set_canvas_page(ctx: &Context, page: Color32) {
     ctx.data_mut(|d| d.insert_temp(egui::Id::unique(CANVAS_ACCENT), pick));
 }
 
+pub(crate) fn set_host_canvas_accent(ctx: &Context, accent: Color32) {
+    ctx.data_mut(|d| d.insert_temp(egui::Id::unique(CANVAS_ACCENT), accent));
+}
+
 /// `x` (opaque) as a document colour, for its contrast with another.
 fn c(x: Color32) -> figcraft_color::Color {
     figcraft_color::Color::new(f32::from(x.r()) / 255.0, f32::from(x.g()) / 255.0, f32::from(x.b()) / 255.0, 1.0)

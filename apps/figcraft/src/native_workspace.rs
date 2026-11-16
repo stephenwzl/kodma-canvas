@@ -3,14 +3,23 @@
 
 use objc2::rc::Retained;
 use objc2::{MainThreadMarker, MainThreadOnly};
-use objc2_app_kit::{NSApplication, NSBox, NSBoxType, NSColor, NSFont, NSResponder, NSTextField, NSTitlePosition, NSView, NSWindow};
+use objc2_app_kit::{
+    NSAppearance, NSAppearanceCustomization, NSApplication, NSBox, NSBoxType, NSColor, NSFont, NSImageView, NSResponder, NSTextField,
+    NSTitlePosition, NSView, NSWindow,
+};
 use objc2_foundation::{NSPoint, NSRect, NSSize, NSString};
 
 use figcraft_ui_egui::CanvasHost;
 use figcraft_ui_egui::workspace::Snapshot;
 
+mod edit_menu;
+mod hero;
 mod home;
+mod inspector;
+mod navigation;
+mod style;
 mod tabs;
+mod toolbar;
 
 const LEFT: f64 = 242.0;
 const TOP: f64 = 84.0;
@@ -23,17 +32,18 @@ pub struct Host {
     top: Retained<NSBox>,
     right: Retained<NSBox>,
     home: Retained<NSBox>,
-    brand: Retained<NSTextField>,
+    brand: Retained<NSImageView>,
+    hero: hero::Hero,
+    toolbar: toolbar::Toolbar,
+    navigation: navigation::Navigation,
     drafts: Retained<NSTextField>,
     controls: home::Controls,
-    edit_menu: Option<crate::native_canvas::NativeEditMenu>,
+    edit_menu: Option<edit_menu::Menu>,
     tabs: tabs::Tabs,
     design: Retained<NSTextField>,
-    selection: Retained<NSTextField>,
-    dimensions: Retained<NSTextField>,
+    properties: inspector::Properties,
     greeting: Retained<NSTextField>,
     headline: Retained<NSTextField>,
-    previous: Option<Snapshot>,
     geometry: Option<(f64, f64, bool)>,
 }
 
@@ -51,15 +61,17 @@ impl Host {
         let top = panel(mtm, 0xffffff);
         let right = panel(mtm, 0xffffff);
         let home = panel(mtm, 0xffffff);
-        let brand = label(mtm, "kodma", 30.0, 0x121212);
+        let navigation = navigation::Navigation::install(mtm, &left, &right, &top)?;
+        let brand =
+            style::picture(mtm, &*left.contentView().ok_or("missing navigation content")?, include_bytes!("../../../assets/kodma/wordmark.png"));
+        let hero = hero::Hero::install(mtm, &home)?;
         let drafts = label(mtm, "稿件", 14.0, 0x736e69);
         let design = label(mtm, "设计", 16.0, 0x121212);
-        let selection = label(mtm, "", 20.0, 0x121212);
-        let dimensions = label(mtm, "", 16.0, 0x736e69);
-        let greeting = label(mtm, "今天，", 64.0, 0x736e69);
-        let headline = label(mtm, "想把什么画出来？", 56.0, 0x121212);
-        add_labels(&left, &[&brand, &drafts])?;
-        add_labels(&right, &[&design, &selection, &dimensions])?;
+        let greeting = label(mtm, "今天，", 66.0, 0x736e69);
+        let headline = label(mtm, "想把什么画出来？", 68.0, 0x121212);
+        add_labels(&left, &[&drafts])?;
+        add_labels(&right, &[&design])?;
+        let properties = inspector::Properties::install(mtm, &right, &window, &canvas)?;
         add_labels(&home, &[&greeting, &headline])?;
         let controls = home::Controls::install(mtm, &left, &top, &home)?;
         let tabs = tabs::Tabs::install(mtm, &top, alert)?;
@@ -67,6 +79,9 @@ impl Host {
         for view in [&*left, &*top, &*right, &*home] {
             canvas.addSubview(view);
         }
+        let toolbar = toolbar::Toolbar::install(mtm, &canvas)?;
+        window.setAutorecalculatesKeyViewLoop(true);
+        window.recalculateKeyViewLoop();
         window.makeFirstResponder(Some(&canvas));
         log::info!("native_workspace installed in NSWindow {}, canvas_flipped={}", window.windowNumber(), canvas.isFlipped());
         Ok(Self {
@@ -77,47 +92,83 @@ impl Host {
             right,
             home,
             brand,
+            hero,
+            toolbar,
+            navigation,
             drafts,
             controls,
             edit_menu: None,
             tabs,
             design,
-            selection,
-            dimensions,
+            properties,
             greeting,
             headline,
-            previous: None,
             geometry: None,
         })
     }
 
-    pub fn install_edit_menu(&mut self) -> Result<(), String> {
-        self.edit_menu = Some(crate::native_canvas::NativeEditMenu::install()?);
+    pub fn install_edit_menu(&mut self, ctx: &egui::Context) -> Result<(), String> {
+        self.edit_menu = Some(edit_menu::Menu::install(ctx, self.window.windowNumber())?);
         Ok(())
     }
 
-    pub fn take_actions(&mut self) -> Vec<figcraft_ui_egui::workspace::Action> {
-        let mut actions = self.tabs.take_actions();
+    pub fn editing_properties(&self) -> bool {
+        self.properties.editing()
+    }
+
+    pub fn take_actions(
+        &mut self,
+        ctx: &egui::Context,
+        inspector: &figcraft_ui_egui::workspace_properties::Inspector,
+    ) -> Vec<figcraft_ui_egui::workspace::Action> {
+        let mut actions = self.edit_menu.as_mut().map(|m| m.actions(ctx)).unwrap_or_default();
+        actions.extend(self.toolbar.actions());
+        actions.extend(self.tabs.take_actions());
         actions.extend(self.controls.take_actions());
-        if !actions.is_empty() {
+        let navigation = !actions.is_empty();
+        if let Some(commit) = self.properties.take_commit(inspector, navigation) {
+            actions.push(figcraft_ui_egui::workspace::Action::Property(commit));
+        }
+        if navigation {
             self.window.makeFirstResponder(Some(&self.canvas));
         }
         actions
     }
 
-    /// Main-thread presentation only. I1 fields are read-only; editable callbacks arrive in I4.
-    pub fn sync(&mut self, snapshot: Snapshot, recents: Vec<figcraft_ui_egui::workspace::RecentFile>, error: Option<String>) -> CanvasHost {
+    pub fn raw_input(&mut self, raw: &mut egui::RawInput) {
+        if let Some(menu) = &mut self.edit_menu {
+            menu.input(raw);
+        }
+    }
+
+    /// Main-thread presentation only; field drafts dispatch through the original runtime.
+    pub fn sync(
+        &mut self,
+        snapshot: Snapshot,
+        recents: Vec<figcraft_ui_egui::workspace::RecentFile>,
+        error: Option<String>,
+        inspector: figcraft_ui_egui::workspace_properties::Inspector,
+    ) -> CanvasHost {
         if let Some(menu) = &self.edit_menu {
-            // The picker can run a nested modal loop for its path sheet, where winit ticks
-            // do not observe every field-focus change. Arm standard responder actions for the
-            // whole picker lifetime, then remove key equivalents before returning to canvas.
-            menu.set_active(snapshot.busy);
+            menu.owner(if snapshot.home || snapshot.busy { None } else { snapshot.active });
         }
         let bounds = self.canvas.bounds();
         let w = bounds.size.width;
         let h = bounds.size.height;
-        self.controls.sync(recents, error, snapshot.busy, w, h);
+        self.controls.sync(
+            recents,
+            error,
+            snapshot.busy,
+            snapshot.home,
+            snapshot.documents.iter().find(|d| Some(d.id) == snapshot.active).map(|d| d.name.as_str()),
+            w,
+            h,
+        );
+        self.navigation.sync(&snapshot, w, h);
+        self.hero.layout(w - LEFT, h - TOP);
+        self.toolbar.sync(&snapshot, w, h, self.canvas.isFlipped());
         self.tabs.sync(&snapshot, (w - LEFT).max(0.0));
+        self.properties.sync(&inspector, snapshot.busy, (h - TOP).max(0.0), &self.window);
         if self.geometry != Some((w, h, snapshot.home)) {
             self.geometry = Some((w, h, snapshot.home));
             self.left.setFrame(rect(0.0, 0.0, LEFT, h));
@@ -129,26 +180,16 @@ impl Host {
             self.home.setFrame(rect(LEFT, body_y, (w - LEFT).max(0.0), (h - TOP).max(0.0)));
             self.right.setHidden(snapshot.home);
             self.home.setHidden(!snapshot.home);
-            self.brand.setFrame(rect(36.0, h - 82.0, 180.0, 44.0));
-            self.drafts.setFrame(rect(36.0, h - 192.0, 180.0, 24.0));
-            self.design.setFrame(rect(24.0, h - TOP - 60.0, 360.0, 30.0));
-            self.selection.setFrame(rect(24.0, h - TOP - 143.0, 360.0, 36.0));
-            self.dimensions.setFrame(rect(24.0, h - TOP - 265.0, 360.0, 85.0));
-            self.greeting.setFrame(rect(78.0, h - TOP - 235.0, (w - LEFT - 100.0).max(0.0), 92.0));
-            self.headline.setFrame(rect(78.0, h - TOP - 320.0, (w - LEFT - 100.0).max(0.0), 82.0));
+            self.brand.setFrame(rect(36.0, h - 77.0, 140.0, 33.0));
+            self.drafts.setFrame(rect(36.0, h - 160.0, 180.0, 24.0));
+            self.drafts.setHidden(snapshot.home);
+            self.design.setFrame(rect(40.0, h - TOP - 58.0, 65.0, 30.0));
+            self.greeting.setFrame(rect(78.0, h - 314.0, 500.0, 100.0));
+            self.headline.setFrame(rect(78.0, h - 399.0, 650.0, 90.0));
         }
         let busy = snapshot.busy;
-        if self.previous.as_ref() != Some(&snapshot) {
-            let (name, dimensions) = match snapshot.selection.as_slice() {
-                [node] => (node.name.clone(), format!("{}\nW  {}     H  {}", node.kind, node.width, node.height)),
-                [] => (String::new(), String::new()),
-                nodes => (format!("{} 个图层", nodes.len()), String::new()),
-            };
-            self.selection.setStringValue(&NSString::from_str(&name));
-            self.dimensions.setStringValue(&NSString::from_str(&dimensions));
-            self.previous = Some(snapshot);
-        }
         CanvasHost {
+            accent: Some(egui::Color32::from_rgb(0x50, 0x65, 0xcc)),
             left_inset: LEFT as f32,
             top_inset: TOP as f32,
             right_inset: RIGHT as f32,
@@ -167,6 +208,7 @@ impl Drop for Host {
         for panel in [&self.left, &self.top, &self.right, &self.home] {
             panel.removeFromSuperview();
         }
+        self.toolbar.view.removeFromSuperview();
         log::info!("native_workspace detached from NSWindow {}", self.window.windowNumber());
     }
 }
@@ -187,6 +229,8 @@ fn color(rgb: u32) -> Retained<NSColor> {
 fn panel(mtm: MainThreadMarker, rgb: u32) -> Retained<NSBox> {
     let panel = NSBox::initWithFrame(NSBox::alloc(mtm), rect(0.0, 0.0, 1.0, 1.0));
     panel.setBoxType(NSBoxType::Custom);
+    // Workspace tokens are currently light; native controls must share their contrast.
+    panel.setAppearance(NSAppearance::appearanceNamed(&NSString::from_str("NSAppearanceNameAqua")).as_deref());
     panel.setTitlePosition(NSTitlePosition::NoTitle);
     panel.setBorderWidth(0.0);
     panel.setContentViewMargins(NSSize::new(0.0, 0.0));

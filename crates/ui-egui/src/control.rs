@@ -1540,6 +1540,7 @@ pub fn handle(app: &mut FigApp, ctx: &Context, method: &str, p: &Value) -> Resul
             ui_set_comments(app, ctx, p)?;
             ui_set_panels(app, ctx, p)?;
             ui_set_styles(app, p)?;
+            app.observe_presentation();
             Ok(app.inspect())
         }
         "ui.render" => {

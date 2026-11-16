@@ -30,6 +30,9 @@ pub struct Snapshot {
     pub revision: Option<u64>,
     pub page: Option<u64>,
     pub selection: Vec<Selection>,
+    pub page_name: Option<String>,
+    pub zoom: f64,
+    pub tool: String,
 }
 
 /// Native UI intent. This is not a programmatic endpoint: Open may request a system picker.
@@ -44,6 +47,9 @@ pub enum Action {
     Save(u64),
     SaveAs(u64),
     AnswerClose(u64, crate::windows::CloseAnswer),
+    Property(crate::workspace_properties::Commit),
+    Command(&'static str),
+    OwnedCommand(u64, &'static str),
 }
 
 /// Internal presentation data for native recent-file buttons; paths are not serialized to tools.
@@ -78,6 +84,14 @@ impl FigApp {
         }
         self.ui.last_error = None;
         match action {
+            Action::OwnedCommand(owner, id) => {
+                if !self.ui.home && self.session.ds().is_ok_and(|d| d.uid == owner) && self.shows(owner) {
+                    self.run_user(id, serde_json::json!({}));
+                }
+            }
+            Action::Command(id) => {
+                self.run_user(id, serde_json::json!({}));
+            }
             Action::New => {
                 if self.run_user("file.new", serde_json::json!({})).is_some() {
                     self.ui.home = false;
@@ -103,6 +117,9 @@ impl FigApp {
                         self.save();
                     }
                 }
+            }
+            Action::Property(commit) => {
+                self.workspace_commit_property(commit);
             }
             Action::AnswerClose(..) => {}
             Action::Open => self.open_dialog(),
@@ -147,6 +164,9 @@ impl FigApp {
             },
             revision: ds.map(|d| d.revision),
             page: (!home).then(|| ds.map(|d| d.page.0)).flatten(),
+            page_name: ds.and_then(|d| d.doc.node(d.page)).map(|p| p.name.clone()),
+            zoom: ds.map_or(1.0, |d| d.view.zoom),
+            tool: self.session.tool.tool.id().into(),
             selection: ds
                 .filter(|_| !home)
                 .map(|d| {

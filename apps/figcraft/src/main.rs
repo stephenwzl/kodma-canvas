@@ -112,17 +112,18 @@ impl eframe::App for App {
             figcraft_ui_egui::windows::on_close_request(fig, ctx);
             #[cfg(target_os = "macos")]
             if let Some(host) = &mut self.native_workspace {
-                for action in host.take_actions() {
+                let inspector = fig.workspace_inspector();
+                for action in host.take_actions(ctx, &inspector) {
                     fig.workspace_action(action);
                 }
-                let mut policy = host.sync(fig.workspace_snapshot(), fig.workspace_recents(), fig.ui.last_error.clone());
+                let mut policy = host.sync(fig.workspace_snapshot(), fig.workspace_recents(), fig.ui.last_error.clone(), fig.workspace_inspector());
                 let zoom = ctx.zoom_factor().max(0.01);
                 policy.left_inset /= zoom;
                 policy.top_inset /= zoom;
                 policy.right_inset /= zoom;
                 fig.canvas_host = Some(policy);
                 // Native button intents use the established safe main-thread polling bridge.
-                ctx.request_repaint_after(std::time::Duration::from_millis(100));
+                ctx.request_repaint_after(std::time::Duration::from_millis(if host.editing_properties() { 16 } else { 100 }));
             }
             fig.title()
         });
@@ -149,6 +150,10 @@ impl eframe::App for App {
         // winit gives an undecorated window its caption back when it changes the window's flags
         // (maximize, restore, ...): take it off again before the frame is laid out (#1343).
         self.window_frame.run();
+        #[cfg(target_os = "macos")]
+        if let Some(host) = &mut self.native_workspace {
+            host.raw_input(raw_input);
+        }
         // Pointer and key events sent over the control channel (`ui.input`), for the window
         // about to draw.
         if let Some(events) = with_app(|fig| figcraft_ui_egui::windows::take_input(fig, raw_input.viewport_id)) {
@@ -316,7 +321,13 @@ fn main() -> eframe::Result {
         .with_min_inner_size([800.0, 500.0])
         .with_drag_and_drop(true);
     if args.native_workspace {
-        viewport = viewport.with_inner_size([1440.0, 960.0]).with_min_inner_size([1200.0, 600.0]);
+        viewport = viewport
+            .with_inner_size([1440.0, 960.0])
+            .with_min_inner_size([1200.0, 600.0])
+            .with_fullsize_content_view(true)
+            .with_title_shown(false)
+            .with_titlebar_shown(false)
+            .with_titlebar_buttons_shown(false);
     }
     // Who draws the window frame is decided once, before the viewport is built, by the shared
     // craft-window crate (the rest of the Craft suite uses it too). On macOS the system frame is
@@ -382,7 +393,7 @@ fn main() -> eframe::Result {
             }
             #[cfg(target_os = "macos")]
             if let Some(host) = &mut native_workspace {
-                host.install_edit_menu().map_err(std::io::Error::other)?;
+                host.install_edit_menu(&cc.egui_ctx).map_err(std::io::Error::other)?;
             }
             Ok(Box::new(App {
                 #[cfg(target_os = "macos")]

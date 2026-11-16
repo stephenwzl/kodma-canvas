@@ -13,6 +13,8 @@ MIT OR Apache-2.0. No third-party icon sets are used.
 
 | Path | Author | Source | Licence | Notes |
 |---|---|---|---|---|
+| `assets/kodma/wordmark.png` | Kodma project contributors | Original Kodma Design System, file `e37912c2dd7d1294`, instance `68719476785` | MIT OR Apache-2.0 | Existing original outlined wordmark exported at 3x; no font file or third-party logo. |
+| `assets/kodma/home-illustration.png` | Kodma project contributors | Original Kodma home design, file `e37912c2dd7d1294`, frame `68719476813` | MIT OR Apache-2.0 | Original illustration: 21 vectors, exported at 3x. No reference screenshot used as a UI asset. |
 | `assets/app-icon/` (all files: `figcraft.svg`, `figcraft-small.svg`, `figcraft-*.png`, `figcraft.ico`, `hicolor/`) | The project owner (engraving-style drawing, vectorised) | Original work, see [`assets/app-icon/README.md`](assets/app-icon/README.md); derived files rendered by `cargo xtask icon` | MIT OR Apache-2.0, [`assets/app-icon/LICENSE.txt`](assets/app-icon/LICENSE.txt) | FigCraft app icon (chameleon) |
 | `docs/brand/artcraft-logo.svg`, `docs/brand/artcraft-logo.png`, `docs/brand/artcraft-logo-white.svg`, `docs/brand/artcraft-logo-white.png`, `docs/brand/artcraft-mark.svg`, `docs/brand/artcraft-mark.png`, `docs/brand/artcraft-mark-black.svg`, `docs/brand/artcraft-mark-black.png` | ArtCraft Team | ArtCraft brand kit | ArtCraft brand terms (`docs/brand/LICENSE-brand.txt`), not open source | Trademarks; unmodified use within FigCraft only |
 | `docs/images/` (all screenshots and exports: `shot-*.png`, `art-*.png`) | FigCraft contributors | Screenshots of FigCraft showing synthetic demo documents made in FigCraft, and PNG exports of those documents by FigCraft's renderer | MIT OR Apache-2.0 | No third-party artwork |

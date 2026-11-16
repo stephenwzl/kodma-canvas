@@ -36,6 +36,7 @@ pub mod ui_scale;
 pub mod widgets;
 pub mod windows;
 pub mod workspace;
+pub mod workspace_properties;
 
 #[cfg(test)]
 mod board_connect_tests;
@@ -791,6 +792,7 @@ pub struct FigApp {
     /// Optional host presentation policy. It never changes saved view preferences or replaces
     /// the editor runtime; the same frame handles input, commands, rendering and background work.
     pub canvas_host: Option<CanvasHost>,
+    workspace_properties: workspace_properties::Tracker,
     pub session: Session,
     pub ui: UiState,
     pub canvas: canvas::CanvasState,
@@ -877,11 +879,13 @@ pub struct CanvasHost {
     pub right_inset: f32,
     /// A native input control owns the keyboard when false.
     pub keyboard: bool,
+    /// Optional host colour for selection overlays; the reference editor keeps its own tokens.
+    pub accent: Option<egui::Color32>,
 }
 
 impl Default for CanvasHost {
     fn default() -> Self {
-        Self { left_inset: 0.0, top_inset: 0.0, right_inset: 0.0, keyboard: true, respect_home: false }
+        Self { left_inset: 0.0, top_inset: 0.0, right_inset: 0.0, keyboard: true, respect_home: false, accent: None }
     }
 }
 

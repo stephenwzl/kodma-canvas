@@ -341,6 +341,9 @@ pub fn show(app: &mut FigApp, ui: &mut Ui, worker: &mut Worker) {
     }
     let painter = ui.painter_at(rect);
     crate::theme::set_canvas_page(&ctx, bg);
+    if let Some(accent) = app.canvas_host.and_then(|host| host.accent) {
+        crate::theme::set_host_canvas_accent(&ctx, accent);
+    }
     let image = if let (Some(tex), Some(v), true) = (&app.canvas.texture, &app.canvas.tex_view, shown.is_some() && app.canvas.tex_of == shown) {
         // Re-project the last render onto the current view.
         let tl = app.to_screen(v.origin.0, v.origin.1);

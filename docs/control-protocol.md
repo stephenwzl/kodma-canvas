@@ -228,7 +228,8 @@ returns one level of children.
 
 Read-only native workspace observation from the current window: `snapshot` contains open
 `documents` (`id`, `name`, `dirty`), `active` runtime UID, `home`, `busy` (an existing async
-file dialog is pending), `revision`, `page`, and
+file dialog or tab-close flow is pending), `close_question` (the UID awaiting a close answer,
+or null), `revision`, `page`, and
 `selection` (`id`, `name`, `kind`, `width`, `height`). Home clears `page` and `selection` without
 closing documents. Paths and editable field drafts are absent. `host` is null in the default
 editor, otherwise it reports `left`, `top`, `right` in egui logical points, `keyboard` and

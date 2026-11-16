@@ -410,7 +410,7 @@ fn close_current(app: &mut FigApp, ctx: &Context) {
 
 /// What the unsaved-changes question was answered with.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum CloseAnswer {
+pub enum CloseAnswer {
     /// Save every file with unsaved changes, then close (Save as for a file without a path).
     Save,
     /// Close and lose the changes.
@@ -554,13 +554,19 @@ pub(crate) fn confirm_close_tab(app: &mut FigApp, ctx: &Context) {
         }
         TabClose::Ask(_) => {
             let names: Vec<String> = app.session.docs.get(i).map(|d| d.doc.name.clone()).into_iter().collect();
-            if let Some(a) = unsaved_question(ctx, &names) {
+            // The native workspace presents this same UID-pinned question with a system alert.
+            // Drawing a second egui question behind native home would be invisible and actionable.
+            if !app.canvas_host.is_some_and(|host| host.respect_home)
+                && let Some(a) = unsaved_question(ctx, &names)
+            {
                 answer_close_tab(app, ctx, a);
             }
         }
         TabClose::Save(_) => {
             app.ui.close_tab = None;
-            // Saving acts on the file shown.
+            // Save targets the closing UID; keep the foreground document when closing a
+            // background tab. A failed or cancelled save must not navigate to that tab.
+            let foreground = app.session.ds().ok().map(|d| d.uid);
             app.session.active = i;
             let native = app.session.docs.get(i).and_then(|d| d.path.as_deref()).is_some_and(|p| {
                 !std::path::Path::new(p).extension().and_then(std::ffi::OsStr::to_str).is_some_and(|e| e.eq_ignore_ascii_case("fig"))
@@ -568,6 +574,9 @@ pub(crate) fn confirm_close_tab(app: &mut FigApp, ctx: &Context) {
             if !native {
                 app.ui.close_tab = Some(TabClose::AfterSaveAs(uid));
                 app.save_as_dialog();
+                if let Some(index) = foreground.and_then(|uid| tab_of(app, uid)) {
+                    app.session.active = index;
+                }
                 if app.pending_dialog.is_none() {
                     // No dialog could start: the tab stays open.
                     app.ui.close_tab = None;
@@ -575,9 +584,11 @@ pub(crate) fn confirm_close_tab(app: &mut FigApp, ctx: &Context) {
                 ctx.request_repaint();
                 return;
             }
-            if app.run("file.save", json!({})).is_some()
-                && let Some(i) = tab_of(app, uid)
-            {
+            let saved = app.run("file.save", json!({})).is_some();
+            if let Some(index) = foreground.and_then(|uid| tab_of(app, uid)) {
+                app.session.active = index;
+            }
+            if saved && let Some(i) = tab_of(app, uid) {
                 app.run("file.close", json!({"index": i}));
             }
         }

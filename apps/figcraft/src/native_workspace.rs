@@ -10,6 +10,7 @@ use figcraft_ui_egui::CanvasHost;
 use figcraft_ui_egui::workspace::Snapshot;
 
 mod home;
+mod tabs;
 
 const LEFT: f64 = 242.0;
 const TOP: f64 = 84.0;
@@ -26,7 +27,7 @@ pub struct Host {
     drafts: Retained<NSTextField>,
     controls: home::Controls,
     edit_menu: Option<crate::native_canvas::NativeEditMenu>,
-    tab: Retained<NSTextField>,
+    tabs: tabs::Tabs,
     design: Retained<NSTextField>,
     selection: Retained<NSTextField>,
     dimensions: Retained<NSTextField>,
@@ -37,7 +38,7 @@ pub struct Host {
 }
 
 impl Host {
-    pub fn install(title: &str) -> Result<Self, String> {
+    pub fn install(title: &str, alert: rfd::AsyncMessageDialog) -> Result<Self, String> {
         let mtm = MainThreadMarker::new().ok_or("native workspace requires the main thread")?;
         let windows = NSApplication::sharedApplication(mtm).windows();
         let mut candidates = windows.iter().filter(|window| window.title().to_string() == title);
@@ -52,17 +53,16 @@ impl Host {
         let home = panel(mtm, 0xffffff);
         let brand = label(mtm, "kodma", 30.0, 0x121212);
         let drafts = label(mtm, "稿件", 14.0, 0x736e69);
-        let tab = label(mtm, "首页", 16.0, 0x121212);
         let design = label(mtm, "设计", 16.0, 0x121212);
         let selection = label(mtm, "", 20.0, 0x121212);
         let dimensions = label(mtm, "", 16.0, 0x736e69);
         let greeting = label(mtm, "今天，", 64.0, 0x736e69);
         let headline = label(mtm, "想把什么画出来？", 56.0, 0x121212);
         add_labels(&left, &[&brand, &drafts])?;
-        add_labels(&top, &[&tab])?;
         add_labels(&right, &[&design, &selection, &dimensions])?;
         add_labels(&home, &[&greeting, &headline])?;
         let controls = home::Controls::install(mtm, &left, &top, &home)?;
+        let tabs = tabs::Tabs::install(mtm, &top, alert)?;
         // Add as siblings of the original rendering view's contents, never its replacement.
         for view in [&*left, &*top, &*right, &*home] {
             canvas.addSubview(view);
@@ -80,7 +80,7 @@ impl Host {
             drafts,
             controls,
             edit_menu: None,
-            tab,
+            tabs,
             design,
             selection,
             dimensions,
@@ -96,8 +96,9 @@ impl Host {
         Ok(())
     }
 
-    pub fn take_actions(&self) -> Vec<figcraft_ui_egui::workspace::Action> {
-        let actions = self.controls.take_actions();
+    pub fn take_actions(&mut self) -> Vec<figcraft_ui_egui::workspace::Action> {
+        let mut actions = self.tabs.take_actions();
+        actions.extend(self.controls.take_actions());
         if !actions.is_empty() {
             self.window.makeFirstResponder(Some(&self.canvas));
         }
@@ -116,6 +117,7 @@ impl Host {
         let w = bounds.size.width;
         let h = bounds.size.height;
         self.controls.sync(recents, error, snapshot.busy, w, h);
+        self.tabs.sync(&snapshot, (w - LEFT).max(0.0));
         if self.geometry != Some((w, h, snapshot.home)) {
             self.geometry = Some((w, h, snapshot.home));
             self.left.setFrame(rect(0.0, 0.0, LEFT, h));
@@ -129,21 +131,14 @@ impl Host {
             self.home.setHidden(!snapshot.home);
             self.brand.setFrame(rect(36.0, h - 82.0, 180.0, 44.0));
             self.drafts.setFrame(rect(36.0, h - 192.0, 180.0, 24.0));
-            self.tab.setFrame(rect(149.0, 9.0, (w - LEFT - 180.0).max(0.0), 42.0));
             self.design.setFrame(rect(24.0, h - TOP - 60.0, 360.0, 30.0));
             self.selection.setFrame(rect(24.0, h - TOP - 143.0, 360.0, 36.0));
             self.dimensions.setFrame(rect(24.0, h - TOP - 265.0, 360.0, 85.0));
             self.greeting.setFrame(rect(78.0, h - TOP - 235.0, (w - LEFT - 100.0).max(0.0), 92.0));
             self.headline.setFrame(rect(78.0, h - TOP - 320.0, (w - LEFT - 100.0).max(0.0), 82.0));
         }
+        let busy = snapshot.busy;
         if self.previous.as_ref() != Some(&snapshot) {
-            let active = snapshot.documents.iter().find(|d| Some(d.id) == snapshot.active);
-            let title = if snapshot.home {
-                String::new()
-            } else {
-                active.map(|d| format!("{}{}", d.name, if d.dirty { " •" } else { "" })).unwrap_or_default()
-            };
-            self.tab.setStringValue(&NSString::from_str(&title));
             let (name, dimensions) = match snapshot.selection.as_slice() {
                 [node] => (node.name.clone(), format!("{}\nW  {}     H  {}", node.kind, node.width, node.height)),
                 [] => (String::new(), String::new()),
@@ -159,7 +154,7 @@ impl Host {
             right_inset: RIGHT as f32,
             respect_home: true,
             keyboard: canvas_keyboard(
-                self.window.isKeyWindow(),
+                self.window.isKeyWindow() && !busy,
                 self.window.firstResponder().is_some_and(|r| std::ptr::eq::<NSResponder>(&*r, &**self.canvas)),
             ),
         }

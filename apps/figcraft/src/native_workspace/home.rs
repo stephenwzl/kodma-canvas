@@ -120,7 +120,7 @@ impl Controls {
     }
 }
 
-fn button(mtm: MainThreadMarker, title: &str) -> Retained<NSButton> {
+pub(super) fn button(mtm: MainThreadMarker, title: &str) -> Retained<NSButton> {
     let button = NSButton::initWithFrame(NSButton::alloc(mtm), rect(0.0, 0.0, 1.0, 1.0));
     button.setTitle(&NSString::from_str(title));
     // Safe AppKit state polling avoids an unsafe Objective-C target/selector bridge.
@@ -129,7 +129,7 @@ fn button(mtm: MainThreadMarker, title: &str) -> Retained<NSButton> {
     button
 }
 
-fn pressed(button: &NSButton) -> bool {
+pub(super) fn pressed(button: &NSButton) -> bool {
     let pressed = button.isEnabled() && button.state() != 0;
     button.setState(0);
     pressed

@@ -26,6 +26,7 @@ pub struct Snapshot {
     pub active: Option<u64>,
     pub home: bool,
     pub busy: bool,
+    pub close_question: Option<u64>,
     pub revision: Option<u64>,
     pub page: Option<u64>,
     pub selection: Vec<Selection>,
@@ -38,6 +39,11 @@ pub enum Action {
     Open,
     Home,
     Recent(String),
+    Switch(u64),
+    Close(u64),
+    Save(u64),
+    SaveAs(u64),
+    AnswerClose(u64, crate::windows::CloseAnswer),
 }
 
 /// Internal presentation data for native recent-file buttons; paths are not serialized to tools.
@@ -60,7 +66,14 @@ impl FigApp {
 
     pub fn workspace_action(&mut self, action: Action) {
         // A queued button must not navigate behind a system picker or replace its continuation.
-        if self.pending_dialog.is_some() {
+        if let Action::AnswerClose(uid, answer) = action {
+            if self.ui.close_tab == Some(crate::windows::TabClose::Ask(uid)) && self.shows(uid) {
+                let ctx = self.ui_context.clone().unwrap_or_default();
+                crate::windows::answer_close_tab(self, &ctx, answer);
+            }
+            return;
+        }
+        if self.pending_dialog.is_some() || self.ui.close_tab.is_some() {
             return;
         }
         self.ui.last_error = None;
@@ -70,6 +83,28 @@ impl FigApp {
                     self.ui.home = false;
                 }
             }
+            Action::Switch(uid) => {
+                if let Some(index) = self.workspace_index(uid)
+                    && self.run("doc.switch", serde_json::json!({"index":index})).is_some()
+                {
+                    self.ui.home = false;
+                }
+            }
+            Action::Close(uid) => {
+                if let Some(index) = self.workspace_index(uid) {
+                    crate::windows::ask_close_tab(self, index);
+                }
+            }
+            Action::Save(uid) | Action::SaveAs(uid) => {
+                if self.workspace_index(uid).is_some() && self.session.ds().is_ok_and(|d| d.uid == uid) && !self.ui.home {
+                    if matches!(action, Action::SaveAs(_)) {
+                        self.save_as_dialog();
+                    } else {
+                        self.save();
+                    }
+                }
+            }
+            Action::AnswerClose(..) => {}
             Action::Open => self.open_dialog(),
             Action::Home => {
                 self.run("doc.home", serde_json::json!({}));
@@ -84,6 +119,10 @@ impl FigApp {
                 }
             }
         }
+    }
+
+    fn workspace_index(&self, uid: u64) -> Option<usize> {
+        self.session.docs.iter().position(|d| d.uid == uid && self.shows(uid))
     }
 
     /// Read on the runtime thread after queued commands. Paths, field drafts and private input
@@ -101,7 +140,11 @@ impl FigApp {
                 .collect(),
             active: ds.map(|d| d.uid),
             home,
-            busy: self.pending_dialog.is_some(),
+            busy: self.pending_dialog.is_some() || self.ui.close_tab.is_some(),
+            close_question: match self.ui.close_tab {
+                Some(crate::windows::TabClose::Ask(uid)) if self.workspace_index(uid).is_some() => Some(uid),
+                _ => None,
+            },
             revision: ds.map(|d| d.revision),
             page: (!home).then(|| ds.map(|d| d.page.0)).flatten(),
             selection: ds
@@ -294,3 +337,7 @@ mod tests {
         assert!(ui.app.session.doc().unwrap().node(figcraft_doc::NodeId(node)).is_some());
     }
 }
+
+#[cfg(test)]
+#[path = "workspace_i3_tests.rs"]
+mod i3_tests;

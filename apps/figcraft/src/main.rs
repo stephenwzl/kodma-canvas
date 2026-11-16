@@ -355,8 +355,11 @@ fn main() -> eframe::Result {
             };
             #[cfg(target_os = "macos")]
             let mut native_workspace = if args.native_workspace {
-                let title = cc.winit_window().map(|window| window.title()).unwrap_or_default();
-                Some(native_workspace::Host::install(&title).map_err(std::io::Error::other)?)
+                let window = cc.winit_window().ok_or_else(|| std::io::Error::other("native workspace requires a winit window"))?;
+                Some(
+                    native_workspace::Host::install(&window.title(), rfd::AsyncMessageDialog::new().set_parent(window))
+                        .map_err(std::io::Error::other)?,
+                )
             } else {
                 None
             };

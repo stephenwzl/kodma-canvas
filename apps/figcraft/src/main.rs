@@ -112,13 +112,16 @@ impl eframe::App for App {
             figcraft_ui_egui::windows::on_close_request(fig, ctx);
             #[cfg(target_os = "macos")]
             if let Some(host) = &mut self.native_workspace {
-                let mut policy = host.sync(fig.workspace_snapshot());
+                for action in host.take_actions() {
+                    fig.workspace_action(action);
+                }
+                let mut policy = host.sync(fig.workspace_snapshot(), fig.workspace_recents(), fig.ui.last_error.clone());
                 let zoom = ctx.zoom_factor().max(0.01);
                 policy.left_inset /= zoom;
                 policy.top_inset /= zoom;
                 policy.right_inset /= zoom;
                 fig.canvas_host = Some(policy);
-                // I1 uses the established safe polling bridge; I2–I4 add native callbacks.
+                // Native button intents use the established safe main-thread polling bridge.
                 ctx.request_repaint_after(std::time::Duration::from_millis(100));
             }
             fig.title()
@@ -351,7 +354,7 @@ fn main() -> eframe::Result {
                 None
             };
             #[cfg(target_os = "macos")]
-            let native_workspace = if args.native_workspace {
+            let mut native_workspace = if args.native_workspace {
                 let title = cc.winit_window().map(|window| window.title()).unwrap_or_default();
                 Some(native_workspace::Host::install(&title).map_err(std::io::Error::other)?)
             } else {
@@ -372,6 +375,10 @@ fn main() -> eframe::Result {
             }
             #[cfg(target_os = "macos")]
             if let Some(host) = &mut native_canvas {
+                host.install_edit_menu().map_err(std::io::Error::other)?;
+            }
+            #[cfg(target_os = "macos")]
+            if let Some(host) = &mut native_workspace {
                 host.install_edit_menu().map_err(std::io::Error::other)?;
             }
             Ok(Box::new(App {

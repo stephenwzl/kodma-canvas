@@ -9,6 +9,8 @@ use objc2_foundation::{NSPoint, NSRect, NSSize, NSString};
 use figcraft_ui_egui::CanvasHost;
 use figcraft_ui_egui::workspace::Snapshot;
 
+mod home;
+
 const LEFT: f64 = 242.0;
 const TOP: f64 = 84.0;
 const RIGHT: f64 = 408.0;
@@ -22,7 +24,8 @@ pub struct Host {
     home: Retained<NSBox>,
     brand: Retained<NSTextField>,
     drafts: Retained<NSTextField>,
-    list: Retained<NSTextField>,
+    controls: home::Controls,
+    edit_menu: Option<crate::native_canvas::NativeEditMenu>,
     tab: Retained<NSTextField>,
     design: Retained<NSTextField>,
     selection: Retained<NSTextField>,
@@ -49,17 +52,17 @@ impl Host {
         let home = panel(mtm, 0xffffff);
         let brand = label(mtm, "kodma", 30.0, 0x121212);
         let drafts = label(mtm, "稿件", 14.0, 0x736e69);
-        let list = label(mtm, "", 16.0, 0x121212);
         let tab = label(mtm, "首页", 16.0, 0x121212);
         let design = label(mtm, "设计", 16.0, 0x121212);
         let selection = label(mtm, "", 20.0, 0x121212);
         let dimensions = label(mtm, "", 16.0, 0x736e69);
         let greeting = label(mtm, "今天，", 64.0, 0x736e69);
         let headline = label(mtm, "想把什么画出来？", 56.0, 0x121212);
-        add_labels(&left, &[&brand, &drafts, &list])?;
+        add_labels(&left, &[&brand, &drafts])?;
         add_labels(&top, &[&tab])?;
         add_labels(&right, &[&design, &selection, &dimensions])?;
         add_labels(&home, &[&greeting, &headline])?;
+        let controls = home::Controls::install(mtm, &left, &top, &home)?;
         // Add as siblings of the original rendering view's contents, never its replacement.
         for view in [&*left, &*top, &*right, &*home] {
             canvas.addSubview(view);
@@ -75,7 +78,8 @@ impl Host {
             home,
             brand,
             drafts,
-            list,
+            controls,
+            edit_menu: None,
             tab,
             design,
             selection,
@@ -87,11 +91,31 @@ impl Host {
         })
     }
 
+    pub fn install_edit_menu(&mut self) -> Result<(), String> {
+        self.edit_menu = Some(crate::native_canvas::NativeEditMenu::install()?);
+        Ok(())
+    }
+
+    pub fn take_actions(&self) -> Vec<figcraft_ui_egui::workspace::Action> {
+        let actions = self.controls.take_actions();
+        if !actions.is_empty() {
+            self.window.makeFirstResponder(Some(&self.canvas));
+        }
+        actions
+    }
+
     /// Main-thread presentation only. I1 fields are read-only; editable callbacks arrive in I4.
-    pub fn sync(&mut self, snapshot: Snapshot) -> CanvasHost {
+    pub fn sync(&mut self, snapshot: Snapshot, recents: Vec<figcraft_ui_egui::workspace::RecentFile>, error: Option<String>) -> CanvasHost {
+        if let Some(menu) = &self.edit_menu {
+            // The picker can run a nested modal loop for its path sheet, where winit ticks
+            // do not observe every field-focus change. Arm standard responder actions for the
+            // whole picker lifetime, then remove key equivalents before returning to canvas.
+            menu.set_active(snapshot.busy);
+        }
         let bounds = self.canvas.bounds();
         let w = bounds.size.width;
         let h = bounds.size.height;
+        self.controls.sync(recents, error, snapshot.busy, w, h);
         if self.geometry != Some((w, h, snapshot.home)) {
             self.geometry = Some((w, h, snapshot.home));
             self.left.setFrame(rect(0.0, 0.0, LEFT, h));
@@ -104,9 +128,8 @@ impl Host {
             self.right.setHidden(snapshot.home);
             self.home.setHidden(!snapshot.home);
             self.brand.setFrame(rect(36.0, h - 82.0, 180.0, 44.0));
-            self.drafts.setFrame(rect(36.0, h - 164.0, 180.0, 24.0));
-            self.list.setFrame(rect(36.0, h - 440.0, 180.0, 250.0));
-            self.tab.setFrame(rect(42.0, 9.0, (w - LEFT - 84.0).max(0.0), 42.0));
+            self.drafts.setFrame(rect(36.0, h - 192.0, 180.0, 24.0));
+            self.tab.setFrame(rect(149.0, 9.0, (w - LEFT - 180.0).max(0.0), 42.0));
             self.design.setFrame(rect(24.0, h - TOP - 60.0, 360.0, 30.0));
             self.selection.setFrame(rect(24.0, h - TOP - 143.0, 360.0, 36.0));
             self.dimensions.setFrame(rect(24.0, h - TOP - 265.0, 360.0, 85.0));
@@ -114,13 +137,11 @@ impl Host {
             self.headline.setFrame(rect(78.0, h - TOP - 320.0, (w - LEFT - 100.0).max(0.0), 82.0));
         }
         if self.previous.as_ref() != Some(&snapshot) {
-            let names = snapshot.documents.iter().take(8).map(|d| format!("{}{}", d.name, if d.dirty { " •" } else { "" })).collect::<Vec<_>>();
-            self.list.setStringValue(&NSString::from_str(&names.join("\n\n")));
             let active = snapshot.documents.iter().find(|d| Some(d.id) == snapshot.active);
             let title = if snapshot.home {
-                "首页".into()
+                String::new()
             } else {
-                active.map(|d| format!("首页     {}{}", d.name, if d.dirty { " •" } else { "" })).unwrap_or_default()
+                active.map(|d| format!("{}{}", d.name, if d.dirty { " •" } else { "" })).unwrap_or_default()
             };
             self.tab.setStringValue(&NSString::from_str(&title));
             let (name, dimensions) = match snapshot.selection.as_slice() {
@@ -137,7 +158,10 @@ impl Host {
             top_inset: TOP as f32,
             right_inset: RIGHT as f32,
             respect_home: true,
-            keyboard: self.window.firstResponder().is_some_and(|r| std::ptr::eq::<NSResponder>(&*r, &**self.canvas)),
+            keyboard: canvas_keyboard(
+                self.window.isKeyWindow(),
+                self.window.firstResponder().is_some_and(|r| std::ptr::eq::<NSResponder>(&*r, &**self.canvas)),
+            ),
         }
     }
 }
@@ -198,9 +222,19 @@ fn panel_origins(flipped: bool, height: f64) -> (f64, f64) {
     if flipped { (0.0, TOP) } else { (height - TOP, 0.0) }
 }
 
+fn canvas_keyboard(key_window: bool, canvas_responder: bool) -> bool {
+    key_window && canvas_responder
+}
+
 #[cfg(test)]
 mod tests {
-    use super::panel_origins;
+    use super::{canvas_keyboard, panel_origins};
+    #[test]
+    fn a_picker_key_window_keeps_keys_out_of_the_underlying_canvas() {
+        assert!(!canvas_keyboard(false, true));
+        assert!(!canvas_keyboard(true, false));
+        assert!(canvas_keyboard(true, true));
+    }
     #[test]
     fn native_panels_use_the_actual_parent_coordinate_direction() {
         assert_eq!(panel_origins(true, 960.0), (0.0, 84.0));

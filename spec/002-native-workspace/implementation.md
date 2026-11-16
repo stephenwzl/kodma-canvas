@@ -2,6 +2,8 @@
 
 状态：I1 实现与验证记录；S002 的完整 AC 仍按[进度](progress.md)逐项验收。沿用完整 `Session / FigApp / UiState`，不新增引擎实例或持久化文档模型。
 
+I2 后续实现、文件操作证据与亲验步骤见[首页与本地文件](i2-home.md)。下文保留 I1 当时的接口和边界记录。
+
 ## 入口与所有权
 
 `./script/build_and_run.sh --workspace --verify --control 17982` 构建并启动 macOS 工作区；直接运行桌面二进制的参数为 `--native-workspace [FILE]`。未给文件且无恢复稿件时显示原生首页框架，文件参数继续进入原有 `file.open`。默认入口、`--canvas-only` 和 `--native-canvas` 保留；两种 native host 同时指定时拒绝启动。

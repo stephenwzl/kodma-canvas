@@ -174,7 +174,7 @@ fn rect(x: f64, y: f64, width: f64, height: f64) -> NSRect {
 
 /// Standard responder actions belong to AppKit while its field editor owns the keyboard.
 /// Keep muda's definitions alive; there is no second command dispatcher or native text model.
-struct NativeEditMenu {
+pub(super) struct NativeEditMenu {
     parent: Retained<NSMenu>,
     item: Retained<NSMenuItem>,
     _definition: muda::Submenu,
@@ -183,7 +183,7 @@ struct NativeEditMenu {
 }
 
 impl NativeEditMenu {
-    fn install() -> Result<Self, String> {
+    pub(super) fn install() -> Result<Self, String> {
         let mtm = MainThreadMarker::new().ok_or("native menu requires the main thread")?;
         let app = NSApplication::sharedApplication(mtm);
         let parent = app.mainMenu().ok_or("no application menu")?;
@@ -229,7 +229,7 @@ impl NativeEditMenu {
         Ok(menu)
     }
 
-    fn set_active(&self, active: bool) {
+    pub(super) fn set_active(&self, active: bool) {
         if self.active.replace(Some(active)) == Some(active) {
             return;
         }

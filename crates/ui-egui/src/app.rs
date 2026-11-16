@@ -285,10 +285,16 @@ impl FigApp {
             self.observe_ime(&ctx, false);
             return;
         }
-        if self.canvas_host.is_none() && (!self.has_files() || self.ui.home) {
+        if self.canvas_host.is_none_or(|host| host.respect_home) && (!self.has_files() || self.ui.home) {
             let docs = &self.session.docs;
             self.canvas.drop_closed(|uid| docs.iter().any(|d| d.uid == uid));
-            home::show(self, ui);
+            if self.canvas_host.is_none() {
+                home::show(self, ui);
+            } else {
+                // Native home covers the content area. Forget the previous canvas hit region;
+                // queued/background work above remains active without dispatching editor input.
+                self.canvas.rect = egui::Rect::NOTHING;
+            }
             // The shortcuts panel belongs to the canvas; it doesn't hang over the home screen
             // (cleared after the home widgets, which may have just asked for it).
             self.ui.shortcuts_panel = false;
@@ -305,18 +311,7 @@ impl FigApp {
             self.observe_ime(&ctx, false);
             return;
         }
-        if let Some(host) = self.canvas_host {
-            // Reserve native space in the original layout instead of resizing or replacing the
-            // winit content view. Clamping also protects callers from non-finite geometry.
-            let inset = if host.right_inset.is_finite() { host.right_inset.clamp(0.0, (ui.available_width() - 1.0).max(0.0)) } else { 0.0 };
-            if inset > 0.0 {
-                egui::Panel::right("canvas_host_native_space")
-                    .exact_size(inset)
-                    .resizable(false)
-                    .frame(egui::Frame::NONE.fill(t.panel))
-                    .show(ui, |_| {});
-            }
-        }
+        crate::workspace::reserve(ui, self.canvas_host, t.panel);
         let hidden = self.canvas_host.is_some() || self.session.ds().map(|d| d.view.ui_hidden).unwrap_or(false);
         // Minimized (Shift+Cmd/Ctrl+\, the Minimize button by the file name): "collapses the
         // navigation bar, left sidebar, and right sidebar"; "If you select an object while the

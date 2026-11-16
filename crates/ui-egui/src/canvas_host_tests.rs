@@ -329,3 +329,40 @@ fn vector_edit_survives_host_region_changes_and_native_focus() {
     ui.app.run("vector.edit.end", json!({}));
     assert!(ui.app.session.ds().unwrap().vector_edit.is_none());
 }
+
+#[test]
+fn workspace_reserves_all_three_regions_and_keeps_hits_inside_the_canvas() {
+    let mut ui = canvas(Session::new());
+    for size in [vec2(1440.0, 960.0), vec2(1200.0, 760.0)] {
+        ui.screen = size;
+        let host = ui.app.canvas_host.as_mut().unwrap();
+        host.left_inset = 242.0;
+        host.top_inset = 84.0;
+        host.right_inset = 408.0;
+        ui.frame(vec![]);
+        assert_eq!(ui.app.canvas.rect, Rect::from_min_max(Pos2::new(242.0, 84.0), Pos2::new(size.x - 408.0, size.y)));
+        let page = ui.app.to_page(ui.app.to_screen(123.0, 77.0));
+        assert!((page.x - 123.0).abs() < 0.001 && (page.y - 77.0).abs() < 0.001);
+    }
+}
+
+#[test]
+fn native_home_fences_input_but_still_drains_control_commands() {
+    let mut session = Session::new();
+    let node = id(&session.execute("shape.rectangle", &json!({"x":40,"y":40,"width":80,"height":60})).unwrap());
+    let mut ui = canvas(session);
+    ui.app.canvas_host.as_mut().unwrap().respect_home = true;
+    ui.app.run("doc.home", json!({}));
+    let (tx, rx) = std::sync::mpsc::channel();
+    ui.app.control_queue.push(ControlRequest {
+        id: json!(1),
+        state: Default::default(),
+        method: "engine.execute".into(),
+        params: json!({"command":"node.set", "params":{"ids":[node],"width":130}}),
+        reply: tx,
+    });
+    ui.frame(vec![Event::Key { key: egui::Key::Delete, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE }]);
+    assert!(rx.recv().unwrap().result.is_ok());
+    assert_eq!(ui.app.session.doc().unwrap().node(node).unwrap().width, 130.0);
+    assert!(!ui.app.canvas.rect.is_positive(), "native home cannot retain an editable canvas hit region");
+}

@@ -224,6 +224,17 @@ returns one level of children.
 {"id":6,"method":"node.get","params":{"id":3,"depth":2,"fields":["name","width","height"]}}
 ```
 
+### `ui.workspace {}`
+
+Read-only native workspace observation from the current window: `snapshot` contains open
+`documents` (`id`, `name`, `dirty`), `active` runtime UID, `home`, `revision`, `page`, and
+`selection` (`id`, `name`, `kind`, `width`, `height`). Home clears `page` and `selection` without
+closing documents. Paths and editable field drafts are absent. `host` is null in the default
+editor, otherwise it reports `left`, `top`, `right` in egui logical points, `keyboard` and
+`respectHome`. `canvas` is the last laid-out `{x,y,width,height}`, or null while native home
+is shown. A snapshot can precede the next native repaint; it is not screenshot evidence.
+Like `ui.inspect`, this observes the window in front, not a background `document` target.
+
 ### `ui.inspect {}`
 
 UI state: panels and tabs (`panels`: the `left` and `right` panels' widths as asked for and whether the left one is closed, `leftCollapsed`), the cursor the canvas shows (`cursor`: a CSS cursor name such as `default`, `crosshair`, `ew-resize`, `grab`, `copy`, `not-allowed`, `zoom-in`, or one FigCraft draws: `rotate <degrees>`, `pen`, `pen-close`, `pen-add`, `pen-bend`, `eyedropper`, `comment`; `null` while the pointer is elsewhere or over something with a cursor of its own, a ruler guide or a gradient handle; the engine's own hint is `tool.overlay.cursor`), current tool (`tool`: its id, overlay hints and, for a selected

@@ -13,6 +13,8 @@ pub struct Args {
     pub canvas_only: bool,
     /// macOS validation window with real AppKit controls beside the egui canvas.
     pub native_canvas: bool,
+    /// S002 product workspace in the existing macOS window.
+    pub native_workspace: bool,
     /// `--control <port>` (or `--control=<port>`): the JSON-lines control server.
     pub control: Option<u16>,
     pub files: Vec<String>,
@@ -77,6 +79,9 @@ pub fn parse(args: &[String]) -> Args {
             roots.push(inline.or_else(|| it.next().cloned()).unwrap_or_default());
         } else if a == "--canvas-only" {
             out.canvas_only = true;
+        } else if a == "--native-workspace" {
+            out.canvas_only = true;
+            out.native_workspace = true;
         } else if a == "--native-canvas" {
             out.canvas_only = true;
             out.native_canvas = true;

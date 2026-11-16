@@ -92,7 +92,7 @@ impl Host {
         if self.last_state.replace(Some(state)) != Some(state) {
             log::info!("native_canvas keyboard={} minimized={} size={}x{}", state.0, state.1, state.2, state.3);
         }
-        figcraft_ui_egui::CanvasHost { right_inset: width as f32, keyboard }
+        figcraft_ui_egui::CanvasHost { right_inset: width as f32, keyboard, ..Default::default() }
     }
 
     /// Install after craft-menu's guarded app menu, preserving its Quit and Services entries.

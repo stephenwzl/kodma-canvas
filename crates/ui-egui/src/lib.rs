@@ -35,6 +35,7 @@ pub mod toolbar;
 pub mod ui_scale;
 pub mod widgets;
 pub mod windows;
+pub mod workspace;
 
 #[cfg(test)]
 mod board_connect_tests;
@@ -867,6 +868,11 @@ pub struct FigApp {
 /// Presentation of the complete editor inside a canvas host.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CanvasHost {
+    /// Native navigation and tab regions, in egui logical points.
+    pub left_inset: f32,
+    pub top_inset: f32,
+    /// Respect the runtime home state instead of forcing the S001 canvas presentation.
+    pub respect_home: bool,
     /// Logical points reserved for native controls on the window's right edge.
     pub right_inset: f32,
     /// A native input control owns the keyboard when false.
@@ -875,7 +881,7 @@ pub struct CanvasHost {
 
 impl Default for CanvasHost {
     fn default() -> Self {
-        Self { right_inset: 0.0, keyboard: true }
+        Self { left_inset: 0.0, top_inset: 0.0, right_inset: 0.0, keyboard: true, respect_home: false }
     }
 }
 

@@ -1480,6 +1480,14 @@ pub fn handle(app: &mut FigApp, ctx: &Context, method: &str, p: &Value) -> Resul
             app.observe_presentation();
             r
         }
+        "ui.workspace" => {
+            let snapshot = app.workspace_snapshot();
+            let host = app.canvas_host;
+            Ok(json!({"snapshot": snapshot, "canvas": if snapshot.home && host.is_some_and(|h| h.respect_home) {
+                Value::Null
+            } else { json!({"x":app.canvas.rect.left(), "y":app.canvas.rect.top(), "width":app.canvas.rect.width(), "height":app.canvas.rect.height()}) },
+            "host": host.map(|h| json!({"left":h.left_inset,"top":h.top_inset,"right":h.right_inset,"keyboard":h.keyboard,"respectHome":h.respect_home}))}))
+        }
         "engine.commands" => Ok(Value::Array(
             figcraft_engine::all_commands()
                 .iter()

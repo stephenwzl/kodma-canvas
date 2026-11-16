@@ -9,6 +9,7 @@ TASK_ARGS=()
 while (($#)); do
     case "$1" in
         --verify|--debug|--logs) TASK_MODE="${1#--}" ;;
+        --workspace) TASK_PRESENTATION=--native-workspace ;;
         --reference) TASK_PRESENTATION= ;;
         --canvas-only) TASK_PRESENTATION=--canvas-only ;;
         --no-build) TASK_BUILD=0 ;;

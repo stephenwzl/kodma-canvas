@@ -84,3 +84,12 @@ fn file_urls_are_paths() {
         assert_eq!(file_url_path(bad), None, "{bad}");
     }
 }
+
+#[test]
+fn workspace_mode_preserves_original_modes_and_explicit_file_arguments() {
+    let parsed = parse(&args(&["--native-workspace", "--control=4243", "i1.figcraft"]));
+    assert!(parsed.canvas_only && parsed.native_workspace && !parsed.native_canvas);
+    assert_eq!(parsed.control, Some(4243));
+    assert_eq!(parsed.files, args(&["i1.figcraft"]));
+    assert_eq!(parse(&args(&["--native-workspace=false"])).unknown, args(&["--native-workspace=false"]));
+}

@@ -1,6 +1,6 @@
 //! FigCraft desktop app.
 //!
-//! Usage: `figcraft [--canvas-only | --native-canvas] [--control <port>] [files…] [figcraft://join?…]` (an invite link joins that
+//! Usage: `figcraft [--canvas-only | --native-canvas | --native-workspace] [--control <port>] [files…] [figcraft://join?…]` (an invite link joins that
 //! live session; the app registers itself as the opener of such links: `collab.registerLinks`).
 //!
 //! `--control <port>` (or `FIGCRAFT_CONTROL_PORT`) starts a localhost JSON-lines control server:
@@ -28,6 +28,8 @@ mod gamepad;
 mod graphics;
 #[cfg(target_os = "macos")]
 mod native_canvas;
+#[cfg(target_os = "macos")]
+mod native_workspace;
 mod recovery;
 mod services;
 mod startup;
@@ -61,6 +63,8 @@ use serde_json::json;
 struct App {
     #[cfg(target_os = "macos")]
     native_canvas: Option<native_canvas::Host>,
+    #[cfg(target_os = "macos")]
+    native_workspace: Option<native_workspace::Host>,
     queue: Arc<Mutex<Vec<ControlRequest>>>,
     ctx_slot: Arc<Mutex<Option<egui::Context>>>,
     /// The window title last sent: a viewport command asks for another frame, so it's only sent
@@ -106,6 +110,17 @@ impl eframe::App for App {
             // Closing the window asks about unsaved changes (and keeps the app running while other
             // windows are open).
             figcraft_ui_egui::windows::on_close_request(fig, ctx);
+            #[cfg(target_os = "macos")]
+            if let Some(host) = &mut self.native_workspace {
+                let mut policy = host.sync(fig.workspace_snapshot());
+                let zoom = ctx.zoom_factor().max(0.01);
+                policy.left_inset /= zoom;
+                policy.top_inset /= zoom;
+                policy.right_inset /= zoom;
+                fig.canvas_host = Some(policy);
+                // I1 uses the established safe polling bridge; I2–I4 add native callbacks.
+                ctx.request_repaint_after(std::time::Duration::from_millis(100));
+            }
             fig.title()
         });
         // Window title follows the document.
@@ -148,6 +163,8 @@ impl eframe::App for App {
         // opt-in host now, or its responder/menu/input-source cleanup would never run.
         #[cfg(target_os = "macos")]
         drop(self.native_canvas.take());
+        #[cfg(target_os = "macos")]
+        drop(self.native_workspace.take());
         // With the app out of reach (busy), its recovery copies stay for the next start.
         let copies = recovery::lock(&self.recovery).take();
         with_app(|fig| {
@@ -180,14 +197,18 @@ fn main() -> eframe::Result {
         return Ok(());
     }
     let args = args::parse(&args);
-    if args.native_canvas && !cfg!(target_os = "macos") {
-        eprintln!("FigCraft: --native-canvas is a macOS validation host");
+    if (args.native_canvas || args.native_workspace) && !cfg!(target_os = "macos") {
+        eprintln!("FigCraft: native canvas and workspace modes require macOS");
         std::process::exit(2);
     }
     if let Some(flag) = args.unknown.first() {
         eprintln!(
-            "FigCraft: unknown option {flag}\nUsage: figcraft [--canvas-only | --native-canvas] [--control PORT] [--automation-read-root DIR]... [--automation-write-root DIR]... [FILE | figcraft://join?...]..."
+            "FigCraft: unknown option {flag}\nUsage: figcraft [--canvas-only | --native-canvas | --native-workspace] [--control PORT] [--automation-read-root DIR]... [--automation-write-root DIR]... [FILE | figcraft://join?...]..."
         );
+        std::process::exit(2);
+    }
+    if args.native_canvas && args.native_workspace {
+        eprintln!("FigCraft: choose one native host mode");
         std::process::exit(2);
     }
     let roots = match (
@@ -255,7 +276,10 @@ fn main() -> eframe::Result {
     session.live.links = figcraft_collab_net::links::system();
     session.invite_links_startup();
     let first_run = svc.prefs.is_none() && args.join.is_none();
-    if session.docs.is_empty() && (args.canvas_only || opens_new_file(first_run, session.prefs.start_on_home, port.is_some())) {
+    if session.docs.is_empty()
+        && !args.native_workspace
+        && (args.canvas_only || opens_new_file(first_run, session.prefs.start_on_home, port.is_some()))
+    {
         let _ = session.execute("file.new", &json!({}));
     }
     // The interface language from the first frame on, and for the message when the window can't
@@ -265,7 +289,7 @@ fn main() -> eframe::Result {
     fig.canvas_host = args.canvas_only.then(figcraft_ui_egui::CanvasHost::default);
     fig.set_startup_update_check(!args.canvas_only);
     fig.automation_roots = roots;
-    fig.ui.home = false;
+    fig.ui.home = args.native_workspace && fig.session.docs.is_empty();
     // Files named on the command line are the user's too: their missing fonts are listed.
     fig.ui.font_checks = opened;
     fig.note_recovered(recovered.copies);
@@ -288,6 +312,9 @@ fn main() -> eframe::Result {
         .with_inner_size([1440.0, 900.0])
         .with_min_inner_size([800.0, 500.0])
         .with_drag_and_drop(true);
+    if args.native_workspace {
+        viewport = viewport.with_inner_size([1440.0, 960.0]).with_min_inner_size([1200.0, 600.0]);
+    }
     // Who draws the window frame is decided once, before the viewport is built, by the shared
     // craft-window crate (the rest of the Craft suite uses it too). On macOS the system frame is
     // kept with FigCraft's inset traffic lights; on Windows it is the system frame; on Linux the
@@ -323,6 +350,13 @@ fn main() -> eframe::Result {
             } else {
                 None
             };
+            #[cfg(target_os = "macos")]
+            let native_workspace = if args.native_workspace {
+                let title = cc.winit_window().map(|window| window.title()).unwrap_or_default();
+                Some(native_workspace::Host::install(&title).map_err(std::io::Error::other)?)
+            } else {
+                None
+            };
             if let Some(state) = &cc.wgpu_render_state {
                 graphics.opened(&state.adapter.get_info());
             }
@@ -343,6 +377,8 @@ fn main() -> eframe::Result {
             Ok(Box::new(App {
                 #[cfg(target_os = "macos")]
                 native_canvas,
+                #[cfg(target_os = "macos")]
+                native_workspace,
                 queue,
                 ctx_slot,
                 title: String::new(),

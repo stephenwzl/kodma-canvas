@@ -6,7 +6,7 @@
 
 ## 当前交付与下一步
 
-当前设计在 [FigCraft Cowork](https://figma.oldiron.work/) 的协作文件 `kodma` 中维护，文件 ID 为 `e37912c2dd7d1294`。使用已有授权打开该文件；仓库仅记录文件定位、设计规范和进度，不保存邀请 token、截图或设计文件副本。
+当前设计在 [FigCraft Cowork](https://figma.oldiron.work/) 的协作文件中维护（本次 live 核对名称为 `kodama`），文件 ID 为 `e37912c2dd7d1294`。使用已有授权打开该文件；仓库仅记录文件定位、设计规范和进度，不保存邀请 token、截图或设计文件副本。
 
 | 页面 | 当前内容 |
 | --- | --- |
@@ -19,11 +19,11 @@
 
 稿件右侧栏提供「设计」和「Kodma Agent」标签。成员入口位于该栏右侧，头像错位叠放，展开后显示成员姓名。04 用外部 Agent 加入稿件的场景演示成员聚焦与退出。分享按钮紧邻头像右侧。分享弹窗和右侧标签切换尚未接入原型；真实远端视口跟随仍需在 Kodma 宿主验证。
 
-当前已按[原生承载方案](canvas-editor-extraction.md)保留完整 FigCraft 运行时，实现仅画布显示、区域适配及 AppKit 同窗验证宿主，并补齐编辑、后台协作和短程生命周期性能证据。用户已确认 S001 验收通过，跨显示比例测试已取消。[S002](../../spec/002-native-workspace/spec.md)现已定义原生首页、稿件标签与固定设计右栏的最小闭环，以及[双稿件验收 case](../../spec/002-native-workspace/acceptance.md)；应用开发及运行验收未开始。下一步从宿主接口与工作区框架实施，复用现有稿件和命令体系。[S001 测试稿与人工 case](../../spec/001-canvas-editor/acceptance.md)保留为回归入口。[稿件工作区架构](workspace-architecture.md)约定状态与命令归属。多稿件、撤销、协作、成员跟随、分享权限和 MCP 沿用 FigCraft 现有能力，作为宿主适配后的回归验收内容；必要的基线记录随适配进行，不另设前置协作开发阶段。
+当前已按[原生承载方案](canvas-editor-extraction.md)保留完整 FigCraft 运行时，实现仅画布显示、区域适配及 AppKit 同窗验证宿主，并补齐编辑、后台协作和短程生命周期性能证据。用户已确认 S001 验收通过，跨显示比例测试已取消。[S002](../../spec/002-native-workspace/spec.md)已补齐 [live 高保真来源与范围对照](../../spec/002-native-workspace/design-reference.md)，定义原生首页、稿件标签与固定设计右栏的最小闭环，以及[双稿件验收 case](../../spec/002-native-workspace/acceptance.md)；应用开发及运行验收未开始。下一步从宿主接口与工作区框架实施，复用现有稿件和命令体系。[S001 测试稿与人工 case](../../spec/001-canvas-editor/acceptance.md)保留为回归入口。[稿件工作区架构](workspace-architecture.md)约定状态与命令归属。多稿件、撤销、协作、成员跟随、分享权限和 MCP 沿用 FigCraft 现有能力，作为宿主适配后的回归验收内容；必要的基线记录随适配进行，不另设前置协作开发阶段。
 
 ### 进度记录
 
-当前实施规格：[S002 v1：macOS 原生工作区最小闭环](../../spec/002-native-workspace/spec.md)，见[迭代进度](../../spec/002-native-workspace/progress.md)。前置 [S001 v2](../../spec/001-canvas-editor/spec.md)已完成，实际检查和用户验收结论见其[迭代记录](../../spec/001-canvas-editor/progress.md)。
+当前实施规格：[S002 v1.1：macOS 原生工作区最小闭环](../../spec/002-native-workspace/spec.md)，见[迭代进度](../../spec/002-native-workspace/progress.md)。前置 [S001 v2](../../spec/001-canvas-editor/spec.md)已完成，实际检查和用户验收结论见其[迭代记录](../../spec/001-canvas-editor/progress.md)。
 
 | 日期 | 已完成 |
 | --- | --- |
@@ -44,6 +44,8 @@
 | 2026-11-16 | S001 续验完成原生编辑菜单与退出前清理；增加编辑 / 异步导入回归、隐藏期间双向本机协作、五次宿主循环及短程性能对照。测试稿与人工 case 已准备；候选窗、跨屏及真实系统拖放未确认，S001 未关闭。 |
 | 2026-11-16 | 用户确认 S001 验收通过并要求标记完成；跨显示比例测试取消。保留既有开发检查、CI 及承载边界记录，进入 macOS 产品工作区接入规划。 |
 | 2026-11-16 | 建立 S002 独立规格、实施进度及双稿件验收 case；先接原生首页 / 标签 / 固定设计右栏，复用原命令和 MCP。文档准备完成，尚未开发或运行验收。 |
+
+S002 v1.1 已通过 FigCraft MCP 在目标会话 live 后逐项读取并渲染四张高保真，补齐尺寸、节点和未覆盖项。当前是本地工作区功能子集，首页 Agent 入口、页面导航、悬浮工具条和完整属性栏等未交付，不能据此宣称完整 UI 还原；详见规格内设计对照。
 
 ### 已做的设计验证
 

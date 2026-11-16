@@ -223,7 +223,7 @@ pub(super) fn input(app: &mut FigApp, ui: &mut Ui, resp: &egui::Response) -> boo
         if app.canvas.dragging && !ctx.input(|i| i.pointer.primary_down()) {
             app.canvas.dragging = false;
             if let Some(at) = hover_pos.or_else(|| app.canvas.last_pointer.map(|p| app.to_screen(p.x, p.y))) {
-                send(app, PointerKind::Up, at, &mods);
+                release(app, at, &mods);
             }
         }
         // Leaving the canvas: nothing is hovered there any more.
@@ -372,17 +372,31 @@ pub(super) fn input(app: &mut FigApp, ui: &mut Ui, resp: &egui::Response) -> boo
         app.canvas.pressure = force;
     }
     if let Some(k) = kind {
-        let at = if matches!(k, PointerKind::Down) { press_pos.unwrap_or(pos) } else { pos };
-        send(app, k, at, &mods);
+        if matches!(k, PointerKind::Up) {
+            release(app, release_pos.unwrap_or(pos), &mods);
+        } else {
+            let at = if matches!(k, PointerKind::Down) { press_pos.unwrap_or(pos) } else { pos };
+            send(app, k, at, &mods);
+        }
         // The pointer also let go within this frame (a quick click, or a slow frame): the tools get
         // the release too, so the press's gesture ends — a quick click with a shape tool still
         // draws and returns to Move, and a double-click right after drawing finds the Move tool.
         if matches!(k, PointerKind::Down) && primary_released {
             app.canvas.dragging = false;
-            send(app, PointerKind::Up, release_pos.unwrap_or(pos), &mods);
+            release(app, release_pos.unwrap_or(pos), &mods);
         }
     }
     true
+}
+
+/// The engine commits its last preview on Up; it does not apply the release position to it.
+/// A move and release can share a frame (including the press), so deliver that last move first.
+/// A stationary click must not invent movement or duplicate a brush point.
+fn release(app: &mut FigApp, pos: Pos2, mods: &egui::Modifiers) {
+    if app.canvas.last_pointer.is_some_and(|last| last != app.to_page(pos)) {
+        send(app, PointerKind::Move, pos, mods);
+    }
+    send(app, PointerKind::Up, pos, mods);
 }
 
 /// Pointer event `kind` at screen point `pos`, to the tools.

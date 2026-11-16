@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | [FigApp 与 CanvasHost](../../crates/ui-egui/src/lib.rs) | 增加宿主显示策略，默认 None 保留原行为 | 状态不持久化到文档；默认编辑器仍可用 |
 | [帧布局](../../crates/ui-egui/src/app.rs) | 条件绘制导航、首页与侧栏，预留原生区域 | 文档切换或隐藏 UI 快捷键不能重新露出外围界面；尺寸与命中坐标一致 |
-| [画布输入](../../crates/ui-egui/src/canvas/input.rs) | 原生输入拥有键盘时禁用临时平移及缩放工具键 | 焦点切换时不误改画布；既有手势和 IME 路径不替换 |
+| [画布输入](../../crates/ui-egui/src/canvas/input.rs) | 原生输入拥有键盘时禁用临时平移及缩放工具键 | 焦点切换时不误改画布；松开前补齐同帧遗漏的末次移动，保持原有事务；IME 路径不替换 |
 | [控制状态](../../crates/ui-egui/src/app/control.rs) | ui.inspect 返回 canvasHost 和实际画布范围 | 外部 Agent 能分辨宿主状态；命令、鉴权及目标文档处理沿用原实现 |
 | [参数与桌面入口](../../apps/figcraft/src/main.rs) | 仅画布与原生验证模式，保留默认启动方式 | 原模式的标题栏、窗口管理与后台逻辑保留；原生区域按 egui 界面缩放换算 |
 | [AppKit 验证宿主](../../apps/figcraft/src/native_canvas.rs) | 同窗原生输入框与宽度滑块，显式焦点和区域同步 | 保持原 contentView、图层与事件循环，升级时重查 winit 的窗口假定 |
@@ -61,3 +61,7 @@ cargo test -p figcraft --bin figcraft args_tests
 演练目标为已获取的 `upstream/main` 提交 `64132ad9`，相对本仓库原 FigCraft 基线 `7b34dbab` 前进 266 个提交。演练在临时源码副本和独立构建目录进行，不将上游升级合入本地主分支。
 
 适配补丁可直接应用，加入相同新增文件后，`cargo check -p figcraft -p figcraft-ui-egui --all-targets` 已通过。最初共享构建目录下出现过缺少函数的编译报错，未在独立目录复现；演练结论以隔离构建结果为准。随后隔离构建 figcraft / figcraft-cli 并启动真实原生窗口，控制通道、attached MCP、ui.input 拖动、单次手势撤销及截图均通过；真实最小化期间的后台控制与 MCP 也通过。系统中文、跨屏和完整生命周期尚未覆盖，不能据此宣称全部升级兼容。详细结果见进度表。
+
+## 同帧指针释放修复
+
+真实鼠标续验发现，UI 在同帧收到移动和松开时，只把松开发给引擎，丢失最后一次预览更新；整个手势同帧时可能完全不移动。释放路径现在在坐标变化时先发送 Move，再发送 Up，保持一次事务。默认参考编辑器同样受益，未替换输入循环或引擎工具。`canvas_fixes_tests::a_batched_drag_keeps_its_release_position_and_one_undo_step` 覆盖两种模式和两类事件批次，实际窗口拖动及回读见[进度记录](progress.md)。

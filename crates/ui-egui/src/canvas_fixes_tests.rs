@@ -49,6 +49,43 @@ fn a_press_and_release_in_one_frame_draw_from_the_press() {
 }
 
 #[test]
+fn a_batched_drag_keeps_its_release_position_and_one_undo_step() {
+    for hosted in [true, false] {
+        for (pressed_earlier, outside) in [(false, false), (true, false), (true, true)] {
+            let mut s = Session::new();
+            let node = id(&s.execute("shape.rectangle", &json!({"x": 120, "y": 100, "width": 200, "height": 140})).unwrap());
+            s.execute("select.set", &json!({"ids": [node]})).unwrap();
+            let mut u = Ui::new(s);
+            u.app.canvas_host = hosted.then(crate::CanvasHost::default);
+            u.frame(vec![]);
+            let start = u.app.to_screen(220.0, 170.0);
+            let end = if outside { Pos2::new(u.app.canvas.rect.right() + 20.0, start.y + 40.0) } else { start + egui::vec2(60.0, 40.0) };
+            let expected = (120.0 + f64::from(end.x - start.x), 100.0 + f64::from(end.y - start.y));
+            let button = |pos, pressed| Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Modifiers::NONE };
+            if pressed_earlier {
+                u.button(start, true);
+                u.frame(vec![Event::PointerMoved(start + egui::vec2(30.0, 20.0))]);
+                u.frame(vec![Event::PointerMoved(end), button(end, false)]);
+            } else {
+                u.frame(vec![Event::PointerMoved(start), button(start, true), Event::PointerMoved(end), button(end, false)]);
+            }
+            let position = |u: &Ui| u.app.session.doc().unwrap().node(node).unwrap().transform.translation();
+            let moved = position(&u);
+            assert!(
+                (moved.x - expected.0).abs() < 0.01 && (moved.y - expected.1).abs() < 0.01,
+                "release position lost: hosted={hosted}, pressed_earlier={pressed_earlier}, outside={outside}, actual={moved:?}"
+            );
+            assert_eq!(u.app.session.tool_info()["busy"], json!(false));
+            u.app.run("edit.undo", json!({}));
+            let undone = position(&u);
+            assert_eq!((undone.x, undone.y), (120.0, 100.0));
+            u.app.run("edit.redo", json!({}));
+            assert_eq!(position(&u), moved);
+        }
+    }
+}
+
+#[test]
 fn frame_outlines_and_slices_draw_when_shown() {
     let mut s = Session::new();
     let f = id(&s.execute("frame.create", &json!({"x": 0, "y": 0, "width": 200, "height": 120})).unwrap());

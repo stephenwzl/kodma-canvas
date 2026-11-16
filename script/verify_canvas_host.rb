@@ -79,6 +79,10 @@ request.call('ui.input', { events: [{ up: finish }] })
 raise 'window pointer input did not move the rectangle' unless request.call('node.get', { id: node })['x'] > 120
 run.call('edit.undo')
 raise 'pointer gesture was not one undo step' unless request.call('node.get', { id: node })['x'] == 120
+request.call('ui.input', { events: [{ move: start }, { down: start }, { move: finish }, { up: finish }] })
+raise 'batched pointer gesture lost its final position' unless request.call('node.get', { id: node })['x'] == 160
+run.call('edit.undo')
+raise 'batched pointer gesture was not one undo step' unless request.call('node.get', { id: node })['x'] == 120
 request.call('ui.set', { home: true })
 run.call('view.toggleUi', { on: false })
 state = request.call('ui.inspect')
@@ -86,7 +90,7 @@ raise 'canvas host disappeared' unless state['canvasHost']
 raise 'tab strip reappeared' unless state.dig('canvas', 'rect', 1) == 0.0
 capture = request.call('ui.screenshot')
 File.binwrite(File.join(evidence, 'egui-canvas.png'), Base64.decode64(capture.fetch('data')))
-File.write(File.join(evidence, 'control-and-mcp.json'), JSON.pretty_generate({ port: port, node: node, state: state, checks: %w[control-read-write undo redo invalid-document attached-mcp shared-runtime window-pointer-input gesture-undo persistent-host-policy screenshot] }))
+File.write(File.join(evidence, 'control-and-mcp.json'), JSON.pretty_generate({ port: port, node: node, state: state, checks: %w[control-read-write undo redo invalid-document attached-mcp shared-runtime window-pointer-input gesture-undo batched-pointer-input persistent-host-policy screenshot] }))
 puts 'PASS: control, pointer input, undo/redo, invalid target, attached MCP, shared runtime and canvas capture'
 puts "Evidence: #{evidence}"
 socket.close

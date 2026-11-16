@@ -62,6 +62,8 @@ Kodma is the product developed in this repository. FigCraft supplies the Rust ca
 `plan/` is an optional gitignored notebook. Behaviour reference notes may be in `plan/figma/*.md`.
 Do not ask for it, and do not stop when it is absent.
 
+Kodma canvas selection outlines use `canvas/selection` (violet `#6738EF`). Apply this in the Kodma host when reusing the FigCraft renderer. See the [product design system](docs/kodma/README.md#design-system-v11).
+
 ## Non-negotiables
 
 ### Clean-room

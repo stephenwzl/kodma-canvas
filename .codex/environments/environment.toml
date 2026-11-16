@@ -1,0 +1,8 @@
+version = 1
+name = "Kodma canvas validation"
+setup-script = ""
+
+[[actions]]
+name = "Run"
+icon = "run"
+command = "./script/build_and_run.sh"

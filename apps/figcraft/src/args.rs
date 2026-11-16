@@ -1,4 +1,4 @@
-//! The command line: `figcraft [--control <port>] [--automation-read-root <dir>]…
+//! The command line: `figcraft [--canvas-only | --native-canvas] [--control <port>] [--automation-read-root <dir>]…
 //! [--automation-write-root <dir>]… [files…] [figcraft://join?…]`. An invite link
 //! (what the system passes when a `figcraft://` link is opened) joins that session once the window
 //! is up; everything else that isn't a flag is a file to open, as a path or a `file://` URL (the
@@ -9,6 +9,10 @@
 /// What the app was started with.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Args {
+    /// Keep the complete runtime but hide the reference application's chrome.
+    pub canvas_only: bool,
+    /// macOS validation window with real AppKit controls beside the egui canvas.
+    pub native_canvas: bool,
     /// `--control <port>` (or `--control=<port>`): the JSON-lines control server.
     pub control: Option<u16>,
     pub files: Vec<String>,
@@ -71,6 +75,11 @@ pub fn parse(args: &[String]) -> Args {
         };
         if let Some(roots) = roots {
             roots.push(inline.or_else(|| it.next().cloned()).unwrap_or_default());
+        } else if a == "--canvas-only" {
+            out.canvas_only = true;
+        } else if a == "--native-canvas" {
+            out.canvas_only = true;
+            out.native_canvas = true;
         } else if flag == "--control" {
             out.control = inline.or_else(|| it.next().cloned()).and_then(|p| p.parse().ok());
         } else if is_invite(a) {

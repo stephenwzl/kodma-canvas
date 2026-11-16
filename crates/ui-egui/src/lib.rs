@@ -64,6 +64,8 @@ mod canvas_drag_tests;
 #[cfg(test)]
 mod canvas_fixes_tests;
 #[cfg(test)]
+mod canvas_host_tests;
+#[cfg(test)]
 mod canvas_hover_tests;
 #[cfg(test)]
 mod canvas_image_rect_tests;
@@ -785,6 +787,9 @@ pub(crate) struct PendingAck {
 
 /// The whole FigCraft UI.
 pub struct FigApp {
+    /// Optional host presentation policy. It never changes saved view preferences or replaces
+    /// the editor runtime; the same frame handles input, commands, rendering and background work.
+    pub canvas_host: Option<CanvasHost>,
     pub session: Session,
     pub ui: UiState,
     pub canvas: canvas::CanvasState,
@@ -857,6 +862,21 @@ pub struct FigApp {
     /// Test-only count of the one IME observation each viewport pass makes.
     #[cfg(test)]
     pub(crate) ime_observations: u32,
+}
+
+/// Presentation of the complete editor inside a canvas host.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CanvasHost {
+    /// Logical points reserved for native controls on the window's right edge.
+    pub right_inset: f32,
+    /// A native input control owns the keyboard when false.
+    pub keyboard: bool,
+}
+
+impl Default for CanvasHost {
+    fn default() -> Self {
+        Self { right_inset: 0.0, keyboard: true }
+    }
 }
 
 /// What to do with the result of a command run in the background.

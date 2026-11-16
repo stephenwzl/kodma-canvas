@@ -29,6 +29,7 @@ impl FigApp {
         let (left_width, right_width) = (within(left_width, LEFT_PANEL), within(right_width, RIGHT_PANEL));
         let pages_height = session.prefs.pages_height;
         Self {
+            canvas_host: None,
             ui: UiState { left_width, right_width, pages_height, ..UiState::default() },
             session,
             canvas: canvas::CanvasState::default(),
@@ -229,7 +230,7 @@ impl FigApp {
         // A field that had the keyboard when the frame began keeps its keys from the shortcuts
         // even if it lets go during the frame (Enter commits it), or as it began (egui drops the
         // focus on Escape before the frame, which cancels the field's edit and nothing else).
-        let typing = std::mem::take(&mut self.field_focus) || a11y::field_focused(&ctx);
+        let typing = std::mem::take(&mut self.field_focus) || a11y::field_focused(&ctx) || self.canvas_host.is_some_and(|host| !host.keyboard);
         // Bind the originating field/file before tabs can switch. Its widget commits only after
         // processing this batch; delivery remains deferred until the following frame.
         let field_save = shortcuts::prepare_field_save(self, &ctx);
@@ -253,7 +254,9 @@ impl FigApp {
         self.sync_dev_mode();
         self.end_pen_outside_design();
         tabs::relink_presents(self);
-        tabs::tab_bar(self, ui);
+        if self.canvas_host.is_none() {
+            tabs::tab_bar(self, ui);
+        }
         // Control/window work and this pass's physical tab click may have replaced the owner.
         // A shared field ID in that replacement must never consume the old commit marker.
         let field_save = shortcuts::revalidate_field_save(self, &ctx, field_save);
@@ -271,7 +274,7 @@ impl FigApp {
             self.observe_ime(&ctx, false);
             return;
         }
-        if !self.has_files() || self.ui.home {
+        if self.canvas_host.is_none() && (!self.has_files() || self.ui.home) {
             let docs = &self.session.docs;
             self.canvas.drop_closed(|uid| docs.iter().any(|d| d.uid == uid));
             home::show(self, ui);
@@ -291,7 +294,19 @@ impl FigApp {
             self.observe_ime(&ctx, false);
             return;
         }
-        let hidden = self.session.ds().map(|d| d.view.ui_hidden).unwrap_or(false);
+        if let Some(host) = self.canvas_host {
+            // Reserve native space in the original layout instead of resizing or replacing the
+            // winit content view. Clamping also protects callers from non-finite geometry.
+            let inset = if host.right_inset.is_finite() { host.right_inset.clamp(0.0, (ui.available_width() - 1.0).max(0.0)) } else { 0.0 };
+            if inset > 0.0 {
+                egui::Panel::right("canvas_host_native_space")
+                    .exact_size(inset)
+                    .resizable(false)
+                    .frame(egui::Frame::NONE.fill(t.panel))
+                    .show(ui, |_| {});
+            }
+        }
+        let hidden = self.canvas_host.is_some() || self.session.ds().map(|d| d.view.ui_hidden).unwrap_or(false);
         // Minimized (Shift+Cmd/Ctrl+\, the Minimize button by the file name): "collapses the
         // navigation bar, left sidebar, and right sidebar"; "If you select an object while the
         // panels are minimized, the left sidebar remains minimized while the right sidebar expands
@@ -307,7 +322,9 @@ impl FigApp {
         // A narrow window shows the right panel when its button asks for it, a board's too.
         let right_open = (self.right_panel_shown(hidden) && !narrow && !right_minimized) || mobile == Some(MobilePanel::Right);
         // A highlighted fill, stroke or effect row goes with the panel it's in, before it draws.
-        crate::property_rows::reconcile(self, &ctx, right_open);
+        if self.canvas_host.is_none() {
+            crate::property_rows::reconcile(self, &ctx, right_open);
+        }
         // A right-to-left UI language mirrors the window: the "left" rail and panel go on the
         // right, the "right" (Design) panel on the left. Their ids and widths stay as they are.
         let mirrored = self.ui.mirrored;

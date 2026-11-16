@@ -209,7 +209,7 @@ pub(super) fn input(app: &mut FigApp, ui: &mut Ui, resp: &egui::Response) -> boo
     let (wheel, zoom_delta) = wheel_zoom(app, &ctx, zoom_delta, mods.shift);
     let scroll = wheel + pan;
     let editing_text = app.session.ds().map(|d| d.text_edit.is_some()).unwrap_or(false);
-    let typing_elsewhere = crate::a11y::field_focused(&ctx);
+    let typing_elsewhere = crate::a11y::field_focused(&ctx) || app.canvas_host.is_some_and(|host| !host.keyboard);
     app.canvas.space_pan = space && !editing_text && !typing_elsewhere;
     if !app.canvas.dragging && crate::selection_spacing::input(app, &ctx, hover_pos, resp.hovered(), app.canvas.space_pan) {
         return false;

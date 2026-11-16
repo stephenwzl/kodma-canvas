@@ -1,6 +1,6 @@
 //! FigCraft desktop app.
 //!
-//! Usage: `figcraft [--control <port>] [files…] [figcraft://join?…]` (an invite link joins that
+//! Usage: `figcraft [--canvas-only | --native-canvas] [--control <port>] [files…] [figcraft://join?…]` (an invite link joins that
 //! live session; the app registers itself as the opener of such links: `collab.registerLinks`).
 //!
 //! `--control <port>` (or `FIGCRAFT_CONTROL_PORT`) starts a localhost JSON-lines control server:
@@ -26,6 +26,8 @@ mod args;
 mod control_server;
 mod gamepad;
 mod graphics;
+#[cfg(target_os = "macos")]
+mod native_canvas;
 mod recovery;
 mod services;
 mod startup;
@@ -57,6 +59,8 @@ use serde_json::json;
 
 /// The app state lives in [`figcraft_ui_egui::windows`] (other windows draw it too).
 struct App {
+    #[cfg(target_os = "macos")]
+    native_canvas: Option<native_canvas::Host>,
     queue: Arc<Mutex<Vec<ControlRequest>>>,
     ctx_slot: Arc<Mutex<Option<egui::Context>>>,
     /// The window title last sent: a viewport command asks for another frame, so it's only sent
@@ -76,6 +80,16 @@ impl eframe::App for App {
     /// guarded background work, poll macOS open events, handle close requests and title
     /// changes, and schedule recovery repaints on the app clock.
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        #[cfg(target_os = "macos")]
+        if let Some(host) = &self.native_canvas {
+            let mut policy = host.sync();
+            // AppKit uses native logical points; egui's interface zoom changes its point size.
+            policy.right_inset /= ctx.zoom_factor().max(0.01);
+            with_app(|fig| fig.canvas_host = Some(policy));
+            // Native validation controls do not replace winit's delegates or need unsafe
+            // callbacks. Poll only the opt-in host, leaving reference-editor idling unchanged.
+            ctx.request_repaint_after(std::time::Duration::from_millis(100));
+        }
         {
             let mut slot = self.ctx_slot.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
             if slot.is_none() {
@@ -162,9 +176,13 @@ fn main() -> eframe::Result {
         return Ok(());
     }
     let args = args::parse(&args);
+    if args.native_canvas && !cfg!(target_os = "macos") {
+        eprintln!("FigCraft: --native-canvas is a macOS validation host");
+        std::process::exit(2);
+    }
     if let Some(flag) = args.unknown.first() {
         eprintln!(
-            "FigCraft: unknown option {flag}\nUsage: figcraft [--control PORT] [--automation-read-root DIR]... [--automation-write-root DIR]... [FILE | figcraft://join?...]..."
+            "FigCraft: unknown option {flag}\nUsage: figcraft [--canvas-only | --native-canvas] [--control PORT] [--automation-read-root DIR]... [--automation-write-root DIR]... [FILE | figcraft://join?...]..."
         );
         std::process::exit(2);
     }
@@ -233,14 +251,15 @@ fn main() -> eframe::Result {
     session.live.links = figcraft_collab_net::links::system();
     session.invite_links_startup();
     let first_run = svc.prefs.is_none() && args.join.is_none();
-    if session.docs.is_empty() && opens_new_file(first_run, session.prefs.start_on_home, port.is_some()) {
+    if session.docs.is_empty() && (args.canvas_only || opens_new_file(first_run, session.prefs.start_on_home, port.is_some())) {
         let _ = session.execute("file.new", &json!({}));
     }
     // The interface language from the first frame on, and for the message when the window can't
     // open (no frame then).
     figcraft_ui_egui::i18n::set(&session.prefs.language, figcraft_ui_egui::Services::system_language(&svc).as_deref());
     let mut fig = FigApp::new(session, Box::new(svc));
-    fig.set_startup_update_check(true);
+    fig.canvas_host = args.canvas_only.then(figcraft_ui_egui::CanvasHost::default);
+    fig.set_startup_update_check(!args.canvas_only);
     fig.automation_roots = roots;
     fig.ui.home = false;
     // Files named on the command line are the user's too: their missing fonts are listed.
@@ -272,7 +291,7 @@ fn main() -> eframe::Result {
     // Hyprland, COSMIC) or an X11 window manager keeps the native frame, while GNOME's Mutter —
     // which draws no server-side frame — leaves it to the app's own custom title bar. This replaces
     // the old bespoke xdg-decoration probe that always drew FigCraft's custom title bar on KDE.
-    fig.ui.title_bar = desktop_title_bar();
+    fig.ui.title_bar = if args.canvas_only { figcraft_ui_egui::TitleBar::Native } else { desktop_title_bar() };
     viewport = window_chrome(viewport, fig.ui.title_bar);
     let custom_titlebar = fig.ui.title_bar == figcraft_ui_egui::TitleBar::Custom;
     if let Some(icon) = icon {
@@ -293,6 +312,13 @@ fn main() -> eframe::Result {
         "FigCraft",
         options,
         Box::new(|cc| {
+            #[cfg(target_os = "macos")]
+            let native_canvas = if args.native_canvas {
+                let title = cc.winit_window().map(|window| window.title()).unwrap_or_default();
+                Some(native_canvas::Host::install(&title).map_err(std::io::Error::other)?)
+            } else {
+                None
+            };
             if let Some(state) = &cc.wgpu_render_state {
                 graphics.opened(&state.adapter.get_info());
             }
@@ -307,6 +333,8 @@ fn main() -> eframe::Result {
                 log::warn!("app menu: kept winit's Quit, which ends the app without asking: {e}");
             }
             Ok(Box::new(App {
+                #[cfg(target_os = "macos")]
+                native_canvas,
                 queue,
                 ctx_slot,
                 title: String::new(),

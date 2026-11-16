@@ -7,6 +7,18 @@ fn args(a: &[&str]) -> Vec<String> {
 }
 
 #[test]
+fn canvas_modes_keep_files_and_control_arguments_and_reject_bad_values() {
+    let parsed = parse(&args(&["--native-canvas", "--control=4242", "scene.figcraft"]));
+    assert!(parsed.canvas_only && parsed.native_canvas);
+    assert_eq!(parsed.control, Some(4242));
+    assert_eq!(parsed.files, args(&["scene.figcraft"]));
+    let parsed = parse(&args(&["--canvas-only"]));
+    assert!(parsed.canvas_only && !parsed.native_canvas);
+    assert_eq!(parse(&args(&["--canvas-only=false"])).unknown, args(&["--canvas-only=false"]));
+    assert_eq!(parse(&args(&["--", "--canvas-only"])).files, args(&["--canvas-only"]));
+}
+
+#[test]
 fn files_and_the_control_port() {
     assert_eq!(parse(&args(&[])), Args::default());
     let a = parse(&args(&["--control", "4242", "a.figcraft", "b.svg"]));

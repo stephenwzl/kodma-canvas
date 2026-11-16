@@ -8,7 +8,7 @@ use std::cell::Cell;
 
 use objc2::rc::Retained;
 use objc2::{MainThreadMarker, MainThreadOnly};
-use objc2_app_kit::{NSApplication, NSPopUpButton, NSResponder, NSSlider, NSTextField, NSTextInputContext, NSView, NSWindow};
+use objc2_app_kit::{NSApplication, NSMenu, NSMenuItem, NSPopUpButton, NSResponder, NSSlider, NSTextField, NSTextInputContext, NSView, NSWindow};
 use objc2_foundation::{NSPoint, NSRect, NSSize, NSString};
 
 pub struct Host {
@@ -23,7 +23,8 @@ pub struct Host {
     input_context: Option<Retained<NSTextInputContext>>,
     original_source: Option<Retained<NSString>>,
     requested_source: Option<Retained<NSString>>,
-    activate_native_context: bool,
+    native_input_focus: NativeInputFocus,
+    edit_menu: Option<NativeEditMenu>,
     last_state: Cell<Option<(bool, bool, u32, u32)>>,
 }
 
@@ -66,7 +67,8 @@ impl Host {
             input_context: None,
             original_source: None,
             requested_source: None,
-            activate_native_context: false,
+            native_input_focus: NativeInputFocus::default(),
+            edit_menu: None,
             last_state: Cell::new(None),
         };
         host.sync();
@@ -82,11 +84,21 @@ impl Host {
         self.sources.setFrame(rect(16.0, (bounds.size.height - 160.0).max(0.0), (width - 32.0).max(0.0), 28.0));
         let keyboard = self.window.firstResponder().is_some_and(|responder| std::ptr::eq::<NSResponder>(&*responder, &**self.canvas));
         self.sync_input_source(keyboard);
+        if let Some(menu) = &self.edit_menu {
+            // Hidden native key equivalents must not steal the canvas engine's undo or clipboard.
+            menu.set_active(!keyboard && self.input.currentEditor().is_some());
+        }
         let state = (keyboard, self.window.isMiniaturized(), bounds.size.width as u32, bounds.size.height as u32);
         if self.last_state.replace(Some(state)) != Some(state) {
             log::info!("native_canvas keyboard={} minimized={} size={}x{}", state.0, state.1, state.2, state.3);
         }
         figcraft_ui_egui::CanvasHost { right_inset: width as f32, keyboard }
+    }
+
+    /// Install after craft-menu's guarded app menu, preserving its Quit and Services entries.
+    pub fn install_edit_menu(&mut self) -> Result<(), String> {
+        self.edit_menu = Some(NativeEditMenu::install()?);
+        Ok(())
     }
 
     fn sync_input_source(&mut self, keyboard: bool) {
@@ -95,18 +107,9 @@ impl Host {
             self.input_context = Some(context);
         }
         let Some(context) = &self.input_context else { return };
-        if keyboard || self.input.currentEditor().is_none() {
-            self.activate_native_context = false;
-        } else {
-            if self.activate_native_context && self.window.isKeyWindow() {
-                context.activate();
-                self.activate_native_context = false;
-            }
-            // Let eframe disable the former canvas IME first, then activate the native field's
-            // real text context on the following host tick. No text or source is synthesized.
-            if self.last_state.get().is_some_and(|state| state.0) {
-                self.activate_native_context = true;
-            }
+        let editing = !keyboard && self.input.currentEditor().is_some();
+        if self.native_input_focus.tick(editing, self.window.isKeyWindow()) {
+            context.activate();
         }
         if self.source_ids.is_empty() {
             let Some(sources) = context.keyboardInputSources() else { return };
@@ -135,6 +138,7 @@ impl Host {
             {
                 context.setSelectedKeyboardInputSource(Some(source));
                 self.requested_source = Some(source.clone());
+                self.native_input_focus.source_selected();
                 log::info!("native_canvas input_source={source}");
             }
             self.source_index = index;
@@ -160,9 +164,138 @@ impl Drop for Host {
         }
         self.window.makeFirstResponder(Some(&self.canvas));
         self.panel.removeFromSuperview();
+        log::info!("native_canvas detached from NSWindow {}", self.window.windowNumber());
     }
 }
 
 fn rect(x: f64, y: f64, width: f64, height: f64) -> NSRect {
     NSRect::new(NSPoint::new(x, y), NSSize::new(width, height))
+}
+
+/// Standard responder actions belong to AppKit while its field editor owns the keyboard.
+/// Keep muda's definitions alive; there is no second command dispatcher or native text model.
+struct NativeEditMenu {
+    parent: Retained<NSMenu>,
+    item: Retained<NSMenuItem>,
+    _definition: muda::Submenu,
+    keys: Vec<(Retained<NSMenuItem>, Retained<NSString>)>,
+    active: Cell<Option<bool>>,
+}
+
+impl NativeEditMenu {
+    fn install() -> Result<Self, String> {
+        let mtm = MainThreadMarker::new().ok_or("native menu requires the main thread")?;
+        let app = NSApplication::sharedApplication(mtm);
+        let parent = app.mainMenu().ok_or("no application menu")?;
+        let edit = muda::Submenu::with_items(
+            "Edit",
+            true,
+            &[
+                &muda::PredefinedMenuItem::undo(None),
+                &muda::PredefinedMenuItem::redo(None),
+                &muda::PredefinedMenuItem::separator(),
+                &muda::PredefinedMenuItem::cut(None),
+                &muda::PredefinedMenuItem::copy(None),
+                &muda::PredefinedMenuItem::paste(None),
+                &muda::PredefinedMenuItem::select_all(None),
+            ],
+        )
+        .map_err(|error| error.to_string())?;
+        let bridge = muda::Menu::with_items(&[&edit]).map_err(|error| error.to_string())?;
+        // Obtain a retained AppKit item through public safe APIs. Installing then restoring
+        // within this synchronous call avoids converting muda's raw NSMenu pointer with unsafe.
+        bridge.init_for_nsapp();
+        let temporary = app.mainMenu();
+        app.setMainMenu(Some(&parent));
+        let temporary = temporary.ok_or("native edit menu was not created")?;
+        let item = temporary.itemAtIndex(0).ok_or("native edit menu is empty")?;
+        temporary.removeItem(&item);
+        item.setHidden(true);
+        parent.addItem(&item);
+        let keys = item
+            .submenu()
+            .map(|menu| {
+                menu.itemArray()
+                    .iter()
+                    .map(|item| {
+                        let key = item.keyEquivalent();
+                        (item, key)
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let menu = Self { parent, item, _definition: edit, keys, active: Cell::new(None) };
+        menu.set_active(false);
+        Ok(menu)
+    }
+
+    fn set_active(&self, active: bool) {
+        if self.active.replace(Some(active)) == Some(active) {
+            return;
+        }
+        self.item.setHidden(!active);
+        // AppKit can still search a hidden submenu's children for key equivalents. Remove
+        // them while the canvas owns keys so Copy/Paste/Undo reach winit unchanged.
+        let empty = NSString::new();
+        for (item, key) in &self.keys {
+            item.setKeyEquivalent(if active { key } else { &empty });
+        }
+    }
+}
+
+impl Drop for NativeEditMenu {
+    fn drop(&mut self) {
+        self.parent.removeItem(&self.item);
+    }
+}
+
+/// Defer activation until eframe has disabled the former canvas IME. A source popup can also
+/// interrupt a native field without ever giving the canvas keys, so track the field editor itself.
+#[derive(Default)]
+struct NativeInputFocus {
+    editing: bool,
+    pending: bool,
+}
+
+impl NativeInputFocus {
+    fn tick(&mut self, editing: bool, key_window: bool) -> bool {
+        let activate = editing && self.pending && key_window;
+        self.pending = editing && (!self.editing || (self.pending && !activate));
+        self.editing = editing;
+        activate
+    }
+
+    fn source_selected(&mut self) {
+        self.pending = true;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NativeInputFocus;
+
+    #[test]
+    fn a_source_selection_reactivates_an_already_editing_native_field() {
+        let mut focus = NativeInputFocus::default();
+        assert!(!focus.tick(true, true));
+        assert!(focus.tick(true, true));
+        assert!(!focus.tick(true, true));
+        focus.source_selected();
+        assert!(focus.tick(true, true), "the picker can change source without returning keys to the canvas");
+        assert!(!focus.tick(true, true), "do not repeatedly activate during composition");
+    }
+
+    #[test]
+    fn returning_from_a_popup_rearms_the_field_and_does_not_activate_in_background() {
+        let mut focus = NativeInputFocus::default();
+        assert!(!focus.tick(true, true));
+        assert!(focus.tick(true, true));
+        assert!(!focus.tick(false, true));
+        assert!(!focus.tick(true, false));
+        assert!(!focus.tick(true, false));
+        assert!(focus.tick(true, true));
+        assert!(!focus.tick(true, true));
+        focus.source_selected();
+        assert!(!focus.tick(false, true), "no activation on a slider or popup");
+    }
 }

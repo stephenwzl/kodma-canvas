@@ -57,12 +57,14 @@ zbus = { version = "5", default-features = false, features = ["async-io", "block
 fmv-macos-events = "=0.1.0"
 # Paste reads the clipboard's public.png as is, keeping the screen density a screenshot records.
 objc2 = { version = "0.6", default-features = false, features = ["std"] }
-objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSPasteboard", "NSApplication", "NSWindow", "NSView", "NSResponder", "NSControl", "NSTextField", "NSSlider", "NSCell", "NSPopUpButton", "NSTextInputContext", "NSText"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSPasteboard", "NSApplication", "NSWindow", "NSView", "NSResponder", "NSControl", "NSTextField", "NSSlider", "NSCell", "NSPopUpButton", "NSTextInputContext", "NSText", "NSMenu", "NSMenuItem"] }
 objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSData", "NSString", "NSArray", "NSGeometry"] }
 # A macOS app menu whose Quit (⌘Q) asks the app first (sends the root window a close request, the
 # same guarded path as the close button); winit's default Quit ends the process through
 # `terminate:`, losing unsaved changes without a word (issue #857).
 craft-menu = { workspace = true }
+# Already used by craft-menu (MIT OR Apache-2.0); safe standard AppKit responder actions.
+muda = { version = "=0.21.2", default-features = false }
 
 [dev-dependencies]
 wat = { workspace = true }

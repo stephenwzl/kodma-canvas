@@ -170,3 +170,162 @@ fn an_empty_canvas_host_stays_blank_and_can_open_a_document_again() {
     assert_eq!(ui.app.session.doc().unwrap().name, "Opened again");
     assert_eq!(ui.app.canvas.rect, Rect::from_min_size(Pos2::ZERO, ui.screen));
 }
+
+#[test]
+fn hosted_marquee_multi_drag_resize_and_rotate_keep_the_original_gesture_transactions() {
+    for inset in [0.0, 320.0, 500.0] {
+        let mut session = Session::new();
+        let a = id(&session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 100, "height": 80})).unwrap());
+        let b = id(&session.execute("shape.rectangle", &json!({"x": 260, "y": 100, "width": 100, "height": 80})).unwrap());
+        session.execute("select.set", &json!({"ids": []})).unwrap();
+        let mut ui = canvas(session);
+        ui.app.canvas_host.as_mut().unwrap().right_inset = inset;
+        ui.frame(vec![]);
+        let from = ui.app.to_screen(70.0, 70.0);
+        let to = ui.app.to_screen(390.0, 210.0);
+        ui.drag_to(from, to);
+        ui.button(to, false);
+        let mut selected = ui.app.session.selection().to_vec();
+        selected.sort();
+        assert_eq!(selected, vec![a, b], "marquee with inset {inset}");
+        // Avoid the smart-selection reorder dot at the layer centre.
+        let from = ui.app.to_screen(125.0, 120.0);
+        let to = from + vec2(40.0, 30.0);
+        ui.drag_to(from, to);
+        ui.button(to, false);
+        assert_eq!(
+            ui.app.session.doc().unwrap().node(a).unwrap().transform.translation().x,
+            140.0,
+            "inset {inset}, selection {:?}, tool {:?}",
+            ui.app.session.selection(),
+            ui.app.session.tool.tool
+        );
+        assert_eq!(ui.app.session.doc().unwrap().node(b).unwrap().transform.translation().x, 300.0);
+        // A command after a gesture is its own undo step, even while chrome is absent.
+        ui.app.run("node.set", json!({"ids": [b], "props": {"name": "external"}}));
+        ui.app.run("edit.undo", json!({}));
+        assert_ne!(ui.app.session.doc().unwrap().node(b).unwrap().name, "external");
+        assert_eq!(ui.app.session.doc().unwrap().node(a).unwrap().transform.translation().x, 140.0);
+        ui.app.run("edit.undo", json!({}));
+        assert_eq!(ui.app.session.doc().unwrap().node(a).unwrap().transform.translation().x, 100.0);
+        ui.app.run("select.set", json!({"ids": [a]}));
+        ui.frame(vec![]);
+        let from = ui.app.to_screen(200.0, 180.0);
+        let to = ui.app.to_screen(230.0, 200.0);
+        ui.drag_to(from, to);
+        ui.button(to, false);
+        assert_eq!(ui.app.session.doc().unwrap().node(a).unwrap().width, 130.0);
+        ui.app.run("edit.undo", json!({}));
+        ui.frame(vec![]);
+        let from = ui.app.to_screen(90.0, 90.0);
+        let to = ui.app.to_screen(220.0, 90.0);
+        ui.drag_to(from, to);
+        ui.button(to, false);
+        let rotation = figcraft_geom::rotation_degrees(ui.app.session.doc().unwrap().node(a).unwrap().transform);
+        assert!(rotation.abs() > 10.0, "rotation handle with inset {inset}: {rotation}");
+        ui.app.run("edit.undo", json!({}));
+        assert!(figcraft_geom::rotation_degrees(ui.app.session.doc().unwrap().node(a).unwrap().transform).abs() < 0.001);
+    }
+}
+
+#[test]
+fn a_hosted_gradient_handle_keeps_its_picker_and_commits_one_undo_step() {
+    let mut session = Session::new();
+    let a = id(&session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 200, "height": 200})).unwrap());
+    session.execute("fill.set", &json!({"id": a, "paint": {"type": "linearGradient", "stops": ["#ff0000", "#0000ff"]}})).unwrap();
+    session.execute("select.set", &json!({"ids": [a]})).unwrap();
+    let mut ui = canvas(session);
+    ui.app.canvas_host.as_mut().unwrap().right_inset = 320.0;
+    let target = crate::colorpicker::PickerTarget::Paint { fills: true, index: 0, ids: vec![a] };
+    ui.app.open_picker(target.clone(), None);
+    ui.frame(vec![]);
+    let depth = ui.app.session.undo_depth().0;
+    let from = ui.app.to_screen(200.0, 100.0);
+    let to = ui.app.to_screen(100.0, 200.0);
+    ui.drag_to(from, to);
+    ui.button(to, false);
+    assert_eq!(ui.app.ui.picker, Some(target));
+    let figcraft_color::PaintKind::Gradient(gradient) = &ui.app.session.doc().unwrap().node(a).unwrap().fills[0].kind else { panic!("not gradient") };
+    assert!(gradient.from.0.abs() < 0.02 && (gradient.from.1 - 0.5).abs() < 0.02);
+    assert_eq!(ui.app.session.undo_depth().0, depth + 1);
+    ui.app.run("edit.undo", json!({}));
+    let figcraft_color::PaintKind::Gradient(gradient) = &ui.app.session.doc().unwrap().node(a).unwrap().fills[0].kind else { panic!("not gradient") };
+    assert_eq!(gradient.from, (0.5, 0.0));
+}
+
+#[test]
+fn a_hosted_drop_finishes_in_its_receiving_document_after_a_switch() {
+    #[derive(Debug)]
+    struct Svg;
+    impl egui::DroppedFile for Svg {
+        fn path(&self) -> &std::path::Path {
+            std::path::Path::new("s001-virtual-drop.svg")
+        }
+        fn bytes(&self) -> Result<Vec<u8>, String> {
+            Ok(br#"<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect width="20" height="10"/></svg>"#.to_vec())
+        }
+    }
+    let mut ui = canvas(Session::new());
+    ui.app.canvas_host.as_mut().unwrap().right_inset = 320.0;
+    let receiving = ui.app.session.ds().unwrap().uid;
+    ui.app.run("file.new", json!({"name": "Other"}));
+    let other = ui.app.session.ds().unwrap().uid;
+    ui.app.run("doc.switch", json!({"index": 0}));
+    ui.frame(vec![]);
+    let at = ui.app.canvas.rect.center();
+    ui.frame_raw(RawInput { events: vec![Event::PointerMoved(at)], dropped_files: vec![std::sync::Arc::new(Svg)], ..Default::default() });
+    assert_eq!(ui.app.ui.pending_opens[0].target.as_ref().unwrap().uid, receiving);
+    ui.frame(vec![]);
+    ui.app.run("doc.switch", json!({"index": 1}));
+    ui.frame(vec![]);
+    ui.frame(vec![]);
+    assert_eq!(ui.app.session.ds().unwrap().uid, other);
+    let layers = |uid| {
+        let doc = &ui.app.session.docs.iter().find(|doc| doc.uid == uid).unwrap().doc;
+        doc.node(doc.pages[0]).unwrap().children.len()
+    };
+    assert_eq!((layers(receiving), layers(other)), (1, 0));
+}
+
+#[test]
+fn a_hosted_prototype_connection_uses_the_original_canvas_handles() {
+    let mut session = Session::new();
+    let a = id(&session.execute("frame.create", &json!({"x": 100, "y": 100, "width": 100, "height": 80})).unwrap());
+    let b = id(&session.execute("frame.create", &json!({"x": 350, "y": 100, "width": 100, "height": 80})).unwrap());
+    session.execute("select.set", &json!({"ids": [a]})).unwrap();
+    let mut ui = canvas(session);
+    ui.app.canvas_host.as_mut().unwrap().right_inset = 320.0;
+    ui.app.ui.right_tab = crate::RightTab::Prototype;
+    ui.frame(vec![]);
+    let doc = ui.app.session.doc().unwrap().clone();
+    let from = crate::canvas::proto_canvas::handles(&ui.app, &doc, &[a])[0].1;
+    let to = ui.app.to_screen(400.0, 140.0);
+    ui.drag_to(from, to);
+    ui.button(to, false);
+    ui.frame(vec![]);
+    let interactions = &ui.app.session.doc().unwrap().node(a).unwrap().interactions;
+    assert_eq!(interactions.len(), 1);
+    assert!(matches!(interactions[0].actions.as_slice(), [figcraft_doc::proto::Action::Navigate { dest, .. }] if *dest == b));
+    ui.app.run("edit.undo", json!({}));
+    assert!(ui.app.session.doc().unwrap().node(a).unwrap().interactions.is_empty());
+}
+
+#[test]
+fn vector_edit_survives_host_region_changes_and_native_focus() {
+    let mut session = Session::new();
+    let a = id(&session.execute("shape.rectangle", &json!({"x": 100, "y": 100, "width": 100, "height": 80})).unwrap());
+    let mut ui = canvas(session);
+    ui.app.run("vector.edit.begin", json!({"id": a}));
+    for inset in [320.0, 500.0, 0.0] {
+        let host = ui.app.canvas_host.as_mut().unwrap();
+        host.right_inset = inset;
+        host.keyboard = false;
+        ui.frame(vec![Event::Text("native".into())]);
+        assert_eq!(ui.app.session.ds().unwrap().vector_edit.as_ref().unwrap().id, a);
+        ui.app.canvas_host.as_mut().unwrap().keyboard = true;
+        ui.frame(vec![]);
+        assert_eq!(ui.app.session.ds().unwrap().vector_edit.as_ref().unwrap().id, a);
+    }
+    ui.app.run("vector.edit.end", json!({}));
+    assert!(ui.app.session.ds().unwrap().vector_edit.is_none());
+}

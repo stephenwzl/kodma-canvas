@@ -1,0 +1,113 @@
+{
+  "name": "S001 验收卡片",
+  "commands": [
+    {
+      "command": "shape.rectangle",
+      "params": {
+        "name": "Card",
+        "x": 80,
+        "y": 60,
+        "width": 600,
+        "height": 420
+      }
+    },
+    {
+      "command": "node.set",
+      "params": {
+        "props": {
+          "fills": [
+            "#FFFFFF"
+          ],
+          "cornerRadius": 24,
+          "locked": true
+        }
+      }
+    },
+    {
+      "command": "text.create",
+      "params": {
+        "name": "Title",
+        "text": "你好，Kodma",
+        "x": 120,
+        "y": 100,
+        "props": {
+          "fontSize": 32
+        }
+      }
+    },
+    {
+      "command": "shape.rectangle",
+      "params": {
+        "name": "Blue",
+        "x": 120,
+        "y": 200,
+        "width": 150,
+        "height": 100
+      }
+    },
+    {
+      "command": "node.set",
+      "params": {
+        "props": {
+          "fills": [
+            "#61B8F6"
+          ],
+          "cornerRadius": 16
+        }
+      }
+    },
+    {
+      "command": "shape.ellipse",
+      "params": {
+        "name": "Coral",
+        "x": 320,
+        "y": 200,
+        "width": 100,
+        "height": 100
+      }
+    },
+    {
+      "command": "node.set",
+      "params": {
+        "props": {
+          "fills": [
+            "#FF9687"
+          ]
+        }
+      }
+    },
+    {
+      "command": "shape.rectangle",
+      "params": {
+        "name": "Mint",
+        "x": 470,
+        "y": 200,
+        "width": 150,
+        "height": 100
+      }
+    },
+    {
+      "command": "node.set",
+      "params": {
+        "props": {
+          "fills": [
+            "#99D9BD"
+          ],
+          "cornerRadius": 16
+        }
+      }
+    },
+    {
+      "command": "text.create",
+      "params": {
+        "name": "Button text",
+        "text": "开始创作",
+        "x": 120,
+        "y": 360,
+        "props": {
+          "fontSize": 24
+        }
+      }
+    }
+  ]
+}

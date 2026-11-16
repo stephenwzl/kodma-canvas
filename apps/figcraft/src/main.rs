@@ -144,6 +144,10 @@ impl eframe::App for App {
     }
 
     fn on_exit(&mut self) {
+        // macOS deliberately exits before eframe tears down its window (see below). Drop the
+        // opt-in host now, or its responder/menu/input-source cleanup would never run.
+        #[cfg(target_os = "macos")]
+        drop(self.native_canvas.take());
         // With the app out of reach (busy), its recovery copies stay for the next start.
         let copies = recovery::lock(&self.recovery).take();
         with_app(|fig| {
@@ -313,7 +317,7 @@ fn main() -> eframe::Result {
         options,
         Box::new(|cc| {
             #[cfg(target_os = "macos")]
-            let native_canvas = if args.native_canvas {
+            let mut native_canvas = if args.native_canvas {
                 let title = cc.winit_window().map(|window| window.title()).unwrap_or_default();
                 Some(native_canvas::Host::install(&title).map_err(std::io::Error::other)?)
             } else {
@@ -331,6 +335,10 @@ fn main() -> eframe::Result {
             #[cfg(target_os = "macos")]
             if let Err(e) = craft_menu::mac::install_app_menu(&cc.egui_ctx, "FigCraft") {
                 log::warn!("app menu: kept winit's Quit, which ends the app without asking: {e}");
+            }
+            #[cfg(target_os = "macos")]
+            if let Some(host) = &mut native_canvas {
+                host.install_edit_menu().map_err(std::io::Error::other)?;
             }
             Ok(Box::new(App {
                 #[cfg(target_os = "macos")]

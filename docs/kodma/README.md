@@ -1,18 +1,18 @@
 # Kodma 产品设计与工作进度
 
-更新日期：2026-11-17。Kodma 是以稿件为单位的 AI 画布工作区；当前 Web 优先（P1），部署 Cloudflare；macOS 暂停（P2），保留后续恢复，不取消或废弃。当前已完成四页高保真 UI 更新、手绘图标与字标、稿件级成员入口和聚焦原型。技术架构页已补齐端与服务端拓扑、客户端分层和两条 Agent 命令链路。完整 FigCraft 运行时继续保留；macOS 历史阶段采用 UI 隐藏、区域适配和原生承载验证，当前 Web 采用浏览器宿主与 Cloudflare 方案；S001 已由用户验收通过并完成。S002 v1.2 已由用户验收通过并关闭，I1–I5 已接入原生工作区、本地文件、标签、页面 / 图层树及固定设计右栏；完整产品工作区、账户、云端同步和 Agent 套餐仍未完成。
+更新日期：2026-11-17。Kodma 是以稿件为单位的 AI 画布工作区；当前 Web 优先（P1），部署 Cloudflare；macOS（P2）按独立规格并行推进。当前已完成四页高保真 UI 更新、手绘图标与字标、稿件级成员入口和聚焦原型。技术架构页已补齐端与服务端拓扑、客户端分层和两条 Agent 命令链路。完整 FigCraft 运行时继续保留；macOS 历史阶段采用 UI 隐藏、区域适配和原生承载验证，当前 Web 采用浏览器宿主与 Cloudflare 方案；S001 已由用户验收通过并完成。S002 v1.2 已由用户验收通过并关闭，I1–I5 已接入原生工作区、本地文件、标签、页面 / 图层树及固定设计右栏；完整产品工作区、账户、云端同步和 Agent 套餐仍未完成。
 
 上市预热：[创业者篇 · 27 秒分镜、10 张 App 高保真画板与试拍进度](founder-storyboard.md)。
 
-S002 历史交付按用户要求优先还原整窗 UI：首页、导航、标签、浮动工具条与固定设计右栏已实际运行，并准备首页 / 编辑态的原生截图及设计叠加对照，见[整窗 UI 对照记录](../../spec/002-native-workspace/visual-review.md)。I4 功能保障与工程验收已完成，见[亲验步骤](../../spec/002-native-workspace/i4-properties.md)。系统中文相关待验项随用户本次整体验收结论关闭。S002 v1.2 的单稿页面与图层树、紫色选框已接入，见[本轮实现与亲验](../../spec/002-native-workspace/i5-navigation.md)；用户决定沿用当前 UI；I5 已补窗口 / 缩放、后台、保存重启及资源对照，并修正控件重建开销。用户于2026-11-17确认S002整体验收通过并关闭；人工验收归属与既有工程检查限制保留。
+S002 历史交付按用户要求优先还原整窗 UI：首页、导航、标签、浮动工具条与固定设计右栏已实际运行，并准备首页 / 编辑态的原生截图及设计叠加对照，见[整窗 UI 对照记录](../../spec/macos/002-native-workspace/visual-review.md)。I4 功能保障与工程验收已完成，见[亲验步骤](../../spec/macos/002-native-workspace/i4-properties.md)。系统中文相关待验项随用户本次整体验收结论关闭。S002 v1.2 的单稿页面与图层树、紫色选框已接入，见[本轮实现与亲验](../../spec/macos/002-native-workspace/i5-navigation.md)；用户决定沿用当前 UI；I5 已补窗口 / 缩放、后台、保存重启及资源对照，并修正控件重建开销。用户于2026-11-17确认S002整体验收通过并关闭；人工验收归属与既有工程检查限制保留。
 
 ## 当前交付与下一步
 
-**当前优先 [S004：Web 工作区与 Cloudflare 云端稿件](../../spec/004-web-cloudflare/spec.md)，P1。** 用户确认首版包含登录、云端保存和跨设备打开；从浏览器 UI、存储、文件交互和 Cloudflare 部署重新定义范围。先设计核对与高保真实际运行视觉验收，再保障功能和测试；[Web 架构](web-architecture.md)、[case](../../spec/004-web-cloudflare/acceptance.md)与[进度](../../spec/004-web-cloudflare/progress.md)已建立，尚未开发 / 部署。保留完整 FigCraft Rust/WASM 运行时；Agent 暂缓，后续云端 MCP。
+**当前优先 [S004：Web 工作区与 Cloudflare 云端稿件](../../spec/web/004-web-cloudflare/spec.md)，P1。** 用户确认首版包含登录、云端保存和跨设备打开；从浏览器 UI、存储、文件交互和 Cloudflare 部署重新定义范围。先设计核对与高保真实际运行视觉验收，再保障功能和测试；[Web 架构](web-architecture.md)、[case](../../spec/web/004-web-cloudflare/acceptance.md)与[进度](../../spec/web/004-web-cloudflare/progress.md)已建立，尚未开发 / 部署。保留完整 FigCraft Rust/WASM 运行时；Agent 暂缓，后续云端 MCP。
 
 S004 当前修订为 **v1.1**：参考 tldraw 的职责分层，每稿 DO + 附属 SQLite 保存文档，R2 只存图片等大资源，复用 FigCraft 增量协议；D1 保持用户 / 目录 / 名额角色。live [架构画板定位](web-architecture.md#live-架构图定位)与规格已同步；本轮只改图文，等待用户确认更新稿后才开始 I1、技术样机或代码，不创建资源、不部署。
 
-macOS 版及 [S003](../../spec/003-drafts-files-ui/spec.md)暂停，优先级 P2，保留后续恢复；S001 / S002 已有结项不变。下文 macOS 宿主和既有高保真交付均属已完成的历史基线，不代表 Web 产品已完成，也不继续作为当前开发主线。
+macOS 按 [S003](../../spec/macos/003-drafts-files-ui/spec.md) 独立推进，从已验收的 S001 / S002 继续做本地稿件管理和原生 UI。下一步是 I1，无需等待 Web 规格确认。
 
 当前设计在 [FigCraft Cowork](https://figma.oldiron.work/) 的协作文件中维护（本次 live 核对名称为 `kodama`），文件 ID 为 `e37912c2dd7d1294`。使用已有授权打开该文件；仓库仅记录文件定位、设计规范和进度，不保存邀请 token、截图或设计文件副本。
 
@@ -27,14 +27,15 @@ macOS 版及 [S003](../../spec/003-drafts-files-ui/spec.md)暂停，优先级 P2
 
 稿件右侧栏提供「设计」和「Kodma Agent」标签。成员入口位于该栏右侧，头像错位叠放，展开后显示成员姓名。04 用外部 Agent 加入稿件的场景演示成员聚焦与退出。分享按钮紧邻头像右侧。分享弹窗和右侧标签切换尚未接入原型；真实远端视口跟随仍需在 Kodma 宿主验证。
 
-当前已按[原生承载方案](canvas-editor-extraction.md)保留完整 FigCraft 运行时，实现仅画布显示、区域适配及 AppKit 同窗验证宿主，并补齐编辑、后台协作和短程生命周期性能证据。用户已确认 S001 验收通过，跨显示比例测试已取消。[S002](../../spec/002-native-workspace/spec.md)已补齐 [live 高保真来源与范围对照](../../spec/002-native-workspace/design-reference.md)，定义原生首页、稿件标签与固定设计右栏的最小闭环，以及[双稿件验收 case](../../spec/002-native-workspace/acceptance.md)。I1 已完成宿主接口与原生框架、真实文件 / MCP 和本轮验收，见[实施说明](../../spec/002-native-workspace/implementation.md)；I2 已完成首页文件操作与本轮验收，见[实施与亲验步骤](../../spec/002-native-workspace/i2-home.md)；I3 已完成稿件标签、切换关闭与状态隔离，见[实施与亲验步骤](../../spec/002-native-workspace/i3-tabs.md)；I4 已完成固定设计右栏功能保障与本轮工程验收，I5 完整闭环与核心升级已补工程证据，继续复用现有稿件和命令体系；质量门禁和资源测量限制见迭代进度。[S001 测试稿与人工 case](../../spec/001-canvas-editor/acceptance.md)保留为回归入口。[稿件工作区架构](workspace-architecture.md)约定状态与命令归属。多稿件、撤销、协作、成员跟随、分享权限和 MCP 沿用 FigCraft 现有能力，作为宿主适配后的回归验收内容；必要的基线记录随适配进行，不另设前置协作开发阶段。
+当前已按[原生承载方案](canvas-editor-extraction.md)保留完整 FigCraft 运行时，实现仅画布显示、区域适配及 AppKit 同窗验证宿主，并补齐编辑、后台协作和短程生命周期性能证据。用户已确认 S001 验收通过，跨显示比例测试已取消。[S002](../../spec/macos/002-native-workspace/spec.md)已补齐 [live 高保真来源与范围对照](../../spec/macos/002-native-workspace/design-reference.md)，定义原生首页、稿件标签与固定设计右栏的最小闭环，以及[双稿件验收 case](../../spec/macos/002-native-workspace/acceptance.md)。I1 已完成宿主接口与原生框架、真实文件 / MCP 和本轮验收，见[实施说明](../../spec/macos/002-native-workspace/implementation.md)；I2 已完成首页文件操作与本轮验收，见[实施与亲验步骤](../../spec/macos/002-native-workspace/i2-home.md)；I3 已完成稿件标签、切换关闭与状态隔离，见[实施与亲验步骤](../../spec/macos/002-native-workspace/i3-tabs.md)；I4 已完成固定设计右栏功能保障与本轮工程验收，I5 完整闭环与核心升级已补工程证据，继续复用现有稿件和命令体系；质量门禁和资源测量限制见迭代进度。[S001 测试稿与人工 case](../../spec/macos/001-canvas-editor/acceptance.md)保留为回归入口。[稿件工作区架构](workspace-architecture.md)约定状态与命令归属。多稿件、撤销、协作、成员跟随、分享权限和 MCP 沿用 FigCraft 现有能力，作为宿主适配后的回归验收内容；必要的基线记录随适配进行，不另设前置协作开发阶段。
 
 ### 进度记录
 
-已结项规格：[S002 v1.2：macOS 原生工作区最小闭环](../../spec/002-native-workspace/spec.md)，见[迭代进度](../../spec/002-native-workspace/progress.md)。前置 [S001 v2](../../spec/001-canvas-editor/spec.md)已完成，实际检查和用户验收结论见其[迭代记录](../../spec/001-canvas-editor/progress.md)。
+已结项规格：[S002 v1.2：macOS 原生工作区最小闭环](../../spec/macos/002-native-workspace/spec.md)，见[迭代进度](../../spec/macos/002-native-workspace/progress.md)。前置 [S001 v2](../../spec/macos/001-canvas-editor/spec.md)已完成，实际检查和用户验收结论见其[迭代记录](../../spec/macos/001-canvas-editor/progress.md)。
 
 | 日期 | 已完成 |
 | --- | --- |
+| 2026-11-17 | Web 与 macOS 规格分目录维护，独立排期和验收；S003 解除暂停，S004 保留开发前确认门槛。 |
 | 2026-11-17 | S004 v1.1 图文修订为 DO SQLite 文档状态、R2 大资源与 FigCraft 增量协议；补资源外置 / 可靠确认 / 恢复 case，待用户确认后才开发。 |
 | 2026-11-17 | 调整为 Web P1、Cloudflare 部署，建立 S004；用户明确首版登录 / 云端保存 / 跨设备。macOS / S003 暂停 P2、保留恢复；UI 优先，Agent 暂缓。仅规格，开发与部署未开始。 |
 | 2026-11-17 | 建立 S003 v1 规格、实施顺序和亲验 case；优先基础稿件管理与 UI，保留完整运行时；Agent 暂缓，后续云端 MCP。仅文档，开发 / 运行验收未开始。 |
@@ -61,7 +62,7 @@ macOS 版及 [S003](../../spec/003-drafts-files-ui/spec.md)暂停，优先级 P2
 | 2026-11-16 | 建立 S002 独立规格、实施进度及双稿件验收 case；先接原生首页 / 标签 / 固定设计右栏，复用原命令和 MCP。文档准备完成，尚未开发或运行验收。 |
 | 2026-11-16 | S002 I1 完成原生工作区框架、只读快照与三边布局，验证真实文件 / MCP、鼠标拖动、1200 宽 / 125% 界面缩放和原入口；完整 S002 继续按 I2–I5 实施，检查限制见迭代进度。 |
 | 2026-11-16 | S002 I2 完成原生首页新建 / 打开 / 最近 / 返回首页，实际取消、失败、脏稿保留、20 条滚动与最近记录重启验收；保留完整运行时。下一步 I3；快捷键探测与 CI 限制见迭代进度。 |
-| 2026-11-16 | S002 I3 完成原生标签、UID 切稿关闭、系统未保存确认、保存 / 另存为与 A/B 状态隔离验收；修正后台关闭保存后的前台归属，提供[亲验 case](../../spec/002-native-workspace/i3-tabs.md)。保留完整运行时，下一步 I4；CI 与输入边界见迭代进度。 |
+| 2026-11-16 | S002 I3 完成原生标签、UID 切稿关闭、系统未保存确认、保存 / 另存为与 A/B 状态隔离验收；修正后台关闭保存后的前台归属，提供[亲验 case](../../spec/macos/002-native-workspace/i3-tabs.md)。保留完整运行时，下一步 I4；CI 与输入边界见迭代进度。 |
 
 S002 v1.1 已通过 FigCraft MCP 在目标会话 live 后逐项读取并渲染四张高保真，补齐尺寸、节点和未覆盖项。当前是本地工作区功能子集；I5 已接入原生页面与图层导航，首页 Agent 执行和完整属性栏仍待接入，不能据此宣称完整 UI 还原；详见规格内设计对照。
 
@@ -123,11 +124,11 @@ I1 已完成原生框架与真实稿件连接，检查布局、截图、实际�
 
 ## 账户与文件同步
 
-Web 首版按 [S004](../../spec/004-web-cloudflare/spec.md)落实：浏览器本地持久稿与云稿共用列表；云稿才承诺跨设备读取，未登录不采用 macOS 应用沙盒语义。
+Web 首版按 [S004](../../spec/web/004-web-cloudflare/spec.md)落实：浏览器本地持久稿与云稿共用列表；云稿才承诺跨设备读取，未登录不采用 macOS 应用沙盒语义。
 
 - 已登录时优先保存到云端，免费账户提供 10 个稿件名额。
 - 云端名额用满后，新稿自动保存在本地，用户可以继续创建。
-- 未登录时，Web 稿件保存在当前浏览器本地持久存储，需要时下载副本；macOS 恢复后仍按其本地存储方案处理。未登录状态不额外增加侧栏导出按钮。
+- 未登录时，Web 稿件保存在当前浏览器本地持久存储，需要时下载副本；macOS 按其本地存储方案处理。未登录状态不额外增加侧栏导出按钮。
 - 本地与云端是同一份文件的同步关系，所有稿件使用同一列表，不分“云端稿件”和“本机稿件”栏目。
 - 免费稿件名额与付费 Agent 套餐是分别提出的规则；套餐是否包含更多同步名额尚未决定。
 

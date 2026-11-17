@@ -8,7 +8,7 @@
 
 沿用 S001 的同窗承载方式和完整 FigCraft 运行时。已有多稿件、文件操作、选区、撤销、工具、渲染及 MCP 是本阶段的接入基础；开发重点是原生界面与原状态、命令、焦点和画布区域的正确连接。
 
-产品布局及交互依据[设计记录](../../docs/kodma/README.md)，状态归属依据[工作区架构](../../docs/kodma/workspace-architecture.md)。本次已通过 live 稿件逐项核对，来源节点、布局及未覆盖项见[高保真对照](design-reference.md)。S002 是功能接入子集，不是四页高保真的完整还原。人工流程见[验收 case](acceptance.md)，实施结果逐轮写入[进度](progress.md)。
+产品布局及交互依据[设计记录](../../../docs/kodma/README.md)，状态归属依据[工作区架构](../../../docs/kodma/workspace-architecture.md)。本次已通过 live 稿件逐项核对，来源节点、布局及未覆盖项见[高保真对照](design-reference.md)。S002 是功能接入子集，不是四页高保真的完整还原。人工流程见[验收 case](acceptance.md)，实施结果逐轮写入[进度](progress.md)。
 
 ## 最高实施优先级：UI 优先
 
@@ -76,12 +76,12 @@ Kodma 宿主使用 `canvas/selection`（`#6738EF`）绘制选框。此颜色属�
 
 | 位置 | 已有职责 / 本阶段核对内容 |
 | --- | --- |
-| [桌面入口](../../apps/figcraft/src/main.rs)与[S001 宿主](../../apps/figcraft/src/native_canvas.rs) | 同窗控件、焦点、原生菜单和退出清理；在产品入口中组织首页与工作区，保留验证入口 |
-| [DocState](../../crates/engine/src/doc_state.rs) | 已有文档身份、选区、视口、历史、路径与 revision；运行时身份不持久化为本地文件标识 |
-| [文件与稿件命令](../../crates/engine/src/cmd/file.rs) | `file.new/open/openRecent/save/saveAs/close`、`doc.list/switch/home` 等既有路径；UI 对话框及首页切换使用原 UI 请求流程 |
-| [选区与属性命令](../../crates/engine/src/cmd/edit.rs)及[属性定义](../../crates/engine/src/cmd/props.rs) | `select.set`、`node.set` 等原命令；I1 逐项确认字段、参数、校验及撤销语义，不在原生层重写规则 |
-| [UI 帧处理](../../crates/ui-egui/src/app.rs)与[后台命令处理](../../crates/ui-egui/src/app/commands.rs) | 画布区域、前台展示、后台 tick 和快照通知；不复制帧循环 |
-| [MCP backend](../../crates/mcp/src/backend.rs)与[控制协议](../../docs/control-protocol.md) | 显式稿件目标、同一运行时和只读检查；补足可回读的工作区状态，不为原生界面再起 headless Session |
+| [桌面入口](../../../apps/figcraft/src/main.rs)与[S001 宿主](../../../apps/figcraft/src/native_canvas.rs) | 同窗控件、焦点、原生菜单和退出清理；在产品入口中组织首页与工作区，保留验证入口 |
+| [DocState](../../../crates/engine/src/doc_state.rs) | 已有文档身份、选区、视口、历史、路径与 revision；运行时身份不持久化为本地文件标识 |
+| [文件与稿件命令](../../../crates/engine/src/cmd/file.rs) | `file.new/open/openRecent/save/saveAs/close`、`doc.list/switch/home` 等既有路径；UI 对话框及首页切换使用原 UI 请求流程 |
+| [选区与属性命令](../../../crates/engine/src/cmd/edit.rs)及[属性定义](../../../crates/engine/src/cmd/props.rs) | `select.set`、`node.set` 等原命令；I1 逐项确认字段、参数、校验及撤销语义，不在原生层重写规则 |
+| [UI 帧处理](../../../crates/ui-egui/src/app.rs)与[后台命令处理](../../../crates/ui-egui/src/app/commands.rs) | 画布区域、前台展示、后台 tick 和快照通知；不复制帧循环 |
+| [MCP backend](../../../crates/mcp/src/backend.rs)与[控制协议](../../../docs/control-protocol.md) | 显式稿件目标、同一运行时和只读检查；补足可回读的工作区状态，不为原生界面再起 headless Session |
 
 I1 交付一份最小适配接口表：快照字段、刷新条件、文档目标校验、支持的属性命令、焦点交接及区域换算。需要的工作区观察接口保持只读，不绕过命令校验，不把原生字段草稿和个人输入写入日志。
 

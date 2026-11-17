@@ -8,14 +8,14 @@
 
 ## 产品决定
 
-- **Web 优先，部署目标为 Cloudflare。macOS 暂停、优先级 P2，保留并计划后续恢复，不取消、不废弃。** 已结项 S001 / S002 保持结项；尚未开发的 macOS S003 暂停，恢复时另记日期与范围。
+- **Web 优先级 P1，部署目标为 Cloudflare。** 本规格的确认、实施与验收仅适用于 Web。
 - 本规格从浏览器产品重新定义，不把 S003 的 AppKit、应用数据目录、系统保存对话框或系统废纸篓流程改名后搬过来。
 - 用户明确：**Web 首版包含登录、云端保存、跨设备打开稿件**。只部署静态编辑器、只保存浏览器内存或仅支持下载，不算首版完成。
 - **UI 优先**：先核对设计、完成浏览器中实际运行的高保真界面并由用户视觉确认，再集中保障登录、稿件与云端存储功能、测试。技术可行性检查和必需的构建 / 启动不代替 UI 交付。
 - 保留完整 FigCraft 文档模型、命令、撤销、编辑工具、帧循环与浏览器渲染运行时，不抽取或重写画布引擎。
 - Agent 暂缓，未来按**云端 MCP**接入同一稿件体系另立规格。首版不开发本地 Agent 产品入口、对话、模型套餐或远程 MCP 服务。
 
-关联：[路线图](../../ROADMAP.md)、[Web 架构](../../docs/kodma/web-architecture.md)、[验收 case](acceptance.md)、[迭代进度](progress.md)。
+关联：[路线图](../../../ROADMAP.md)、[Web 架构](../../../docs/kodma/web-architecture.md)、[验收 case](acceptance.md)、[迭代进度](progress.md)。
 
 ## 首版范围
 
@@ -36,7 +36,7 @@
 
 ## UI 来源与浏览器适配
 
-当前可追溯设计是文件 `e37912c2dd7d1294` 的「Kodma · 高保真 UI」及 Design System，历史来源见 [S002 设计记录](../002-native-workspace/design-reference.md)。**本轮已更新 live 架构页，但尚未重新逐项 live 核对高保真 UI**。I1 在 live 后读取当前节点、组件与 token，建立 Web 设计对照；缺失的登录、文件管理、冲突、离线及恢复状态先补设计，不让开发人员随意拼默认控件。
+当前可追溯设计是文件 `e37912c2dd7d1294` 的「Kodma · 高保真 UI」及 Design System，历史来源见 [S002 设计记录](../../macos/002-native-workspace/design-reference.md)。**本轮已更新 live 架构页，但尚未重新逐项 live 核对高保真 UI**。I1 在 live 后读取当前节点、组件与 token，建立 Web 设计对照；缺失的登录、文件管理、冲突、离线及恢复状态先补设计，不让开发人员随意拼默认控件。
 
 - 首页延续暖白底、原创字标 / 插画和已确认层级。编辑窗口延续首页 / 稿件标签、单稿页面 / 图层导航、工具条与固定设计栏，选框使用 `#6738EF`；名称、列表、属性和按钮状态来自真实数据。
 - 1440 × 960 为基准 CSS 尺寸，核对 1200 级窄视口、浏览器 100% / 125% 缩放与不同 DPR；重新定义浏览器布局，不把 AppKit 逻辑点直接当物理像素。
@@ -65,7 +65,7 @@ I2 提供同尺寸设计与**浏览器实际运行截图**对照、交互状态�
 
 ## 技术路线与 Cloudflare 部署
 
-具体职责与提交流程见 [Web 架构](../../docs/kodma/web-architecture.md)。v1.1 选择 **Workers Static Assets + 同源 Worker + 每稿一个 Durable Object / 附属 SQLite + D1 元信息 + 私有 R2 大资源**。参考 tldraw 的公开职责分层，不引入其编辑器、同步算法、代码或资产；FigCraft 的原生 TCP / 文件系统服务不能原样部署 Worker，需适配平台 transport / storage。[tldraw 官方架构](https://tldraw.dev/docs/sync)
+具体职责与提交流程见 [Web 架构](../../../docs/kodma/web-architecture.md)。v1.1 选择 **Workers Static Assets + 同源 Worker + 每稿一个 Durable Object / 附属 SQLite + D1 元信息 + 私有 R2 大资源**。参考 tldraw 的公开职责分层，不引入其编辑器、同步算法、代码或资产；FigCraft 的原生 TCP / 文件系统服务不能原样部署 Worker，需适配平台 transport / storage。[tldraw 官方架构](https://tldraw.dev/docs/sync)
 
 | 层 | 负责什么 | 边界 |
 | --- | --- | --- |
@@ -78,9 +78,9 @@ I2 提供同尺寸设计与**浏览器实际运行截图**对照、交互状态�
 
 ### FigCraft 兼容与资源外置
 
-[原增量 diff](../../crates/collab/src/diff.rs)、[同步客户端](../../crates/collab/src/client.rs)、[消息定义](../../crates/collab/src/message.rs)与[持久化钩子](../../crates/collab-net/src/hub/backend.rs)是复用起点。确认后 I1 验证 Rust 同步核心如何进入 DO 的执行环境并保持原语义；不为采用 tldraw 分层就切换为 tldraw sync / Yjs 或重写 CRDT。
+[原增量 diff](../../../crates/collab/src/diff.rs)、[同步客户端](../../../crates/collab/src/client.rs)、[消息定义](../../../crates/collab/src/message.rs)与[持久化钩子](../../../crates/collab-net/src/hub/backend.rs)是复用起点。确认后 I1 验证 Rust 同步核心如何进入 DO 的执行环境并保持原语义；不为采用 tldraw 分层就切换为 tldraw sync / Yjs 或重写 CRDT。
 
-源码中的图片变更目前携带字节（[资源变更](../../crates/collab/src/change.rs)、[资源序列化](../../crates/collab/src/docprops.rs)），因此资源外置是明确开发项。Web 适配层需要有版本的外置资源表示、权限验证和加载 / 重放路径；存储检查点 / 日志剥离大资源字节，恢复时为原核心提供所需资源。不能直接把 URL 填入原图片字段，不能声称既有 wire 已原生支持 R2 引用；保持默认原生 / 参考 Web 行为与 .figcraft 交换兼容。I1 验证资源加载、内存与消息边界，失败不得退回到每次整稿上传。
+源码中的图片变更目前携带字节（[资源变更](../../../crates/collab/src/change.rs)、[资源序列化](../../../crates/collab/src/docprops.rs)），因此资源外置是明确开发项。Web 适配层需要有版本的外置资源表示、权限验证和加载 / 重放路径；存储检查点 / 日志剥离大资源字节，恢复时为原核心提供所需资源。不能直接把 URL 填入原图片字段，不能声称既有 wire 已原生支持 R2 引用；保持默认原生 / 参考 Web 行为与 .figcraft 交换兼容。I1 验证资源加载、内存与消息边界，失败不得退回到每次整稿上传。
 
 ### 参考能力与开发门槛
 
@@ -105,7 +105,7 @@ Cloudflare 提供 DO 的 SQLite 事务存储、持久化 / 输出门语义和有
 | I4：文件管理、本地恢复与冲突 | 搜索、导入 / 下载、软删除 / 恢复、本地稿、断网重连、DO 驱逐 / 唤醒、会话过期、多标签 / 多设备收敛与失败恢复 | AC07–AC10 通过，无静默覆盖 / 串稿 / 伪保存 |
 | I5：Cloudflare 部署与亲验 | 隔离环境部署、HTTPS 资源 / 路由 / 缓存验证、双浏览器 / 账户 case、构建与回归、发布 / 回滚手册 | AC11 / AC12 与全套亲验完成；生产发布按授权执行，未执行项明确保留 |
 
-每轮记录 UI、功能和部署证据的区别；不以某一层通过代替其他层。只在 main 工作；不修改共享 CI 工作流，不在本轮推进 macOS S003；共享引擎改动仍执行适用的跨端回归。
+每轮记录 UI、功能和部署证据的区别；不以某一层通过代替其他层。只在 main 工作；不修改共享 CI 工作流；macOS 的实施进度由 S003 单独记录；共享引擎改动仍执行适用的跨端回归。
 
 ## 验收与结项
 

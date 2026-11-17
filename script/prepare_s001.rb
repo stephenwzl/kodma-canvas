@@ -8,7 +8,7 @@ root = File.expand_path('..', __dir__)
 client = CanvasControl.new(ARGV.fetch(0, '17981'))
 begin
   raise 'requires the opt-in canvas host' unless client.request('ui.inspect')['canvasHost']
-  fixture = JSON.parse(File.read(File.join(root, 'spec/001-canvas-editor/fixtures/card.json')))
+  fixture = JSON.parse(File.read(File.join(root, 'spec/macos/001-canvas-editor/fixtures/card.json')))
   client.run('file.new', { name: fixture.fetch('name') })
   ids = {}
   last = nil

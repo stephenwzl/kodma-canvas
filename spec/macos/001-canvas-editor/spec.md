@@ -37,12 +37,12 @@
 
 | 现有位置 | 保留职责及核对点 |
 | --- | --- |
-| [FigApp / UiState](../../crates/ui-egui/src/lib.rs) | 保持完整状态及文档归属，由原有运行时管理 |
-| [UI 帧循环](../../crates/ui-egui/src/app.rs)及[帧处理](../../crates/ui-egui/src/app/frame.rs) | 保留调用顺序，仅控制外围 UI 的显示与画布区域 |
-| [canvas::show](../../crates/ui-egui/src/canvas.rs) | 继续使用现有画布、覆盖层、输入和渲染路径 |
-| [background_tick](../../crates/ui-egui/src/app/commands.rs) | 保留控制请求、协作轮询、异步完成和保存调度 |
-| [桌面入口](../../apps/figcraft/src/main.rs)与[Services](../../crates/ui-egui/src/services.rs) | 验证窗口与视图适配、事件循环、平台服务及关闭行为 |
-| [MCP backend](../../crates/mcp/src/backend.rs)与[控制协议](../../docs/control-protocol.md) | 继续连接同一运行时，不另外启动 headless Session |
+| [FigApp / UiState](../../../crates/ui-egui/src/lib.rs) | 保持完整状态及文档归属，由原有运行时管理 |
+| [UI 帧循环](../../../crates/ui-egui/src/app.rs)及[帧处理](../../../crates/ui-egui/src/app/frame.rs) | 保留调用顺序，仅控制外围 UI 的显示与画布区域 |
+| [canvas::show](../../../crates/ui-egui/src/canvas.rs) | 继续使用现有画布、覆盖层、输入和渲染路径 |
+| [background_tick](../../../crates/ui-egui/src/app/commands.rs) | 保留控制请求、协作轮询、异步完成和保存调度 |
+| [桌面入口](../../../apps/figcraft/src/main.rs)与[Services](../../../crates/ui-egui/src/services.rs) | 验证窗口与视图适配、事件循环、平台服务及关闭行为 |
+| [MCP backend](../../../crates/mcp/src/backend.rs)与[控制协议](../../../docs/control-protocol.md) | 继续连接同一运行时，不另外启动 headless Session |
 
 Kodma 原生宿主负责提供画布区域、转交焦点与平台事件、管理视图生命周期。完整 FigCraft 运行时负责编辑和调度。原生侧只读取显示所需信息，不维护第二套可编辑文档。
 

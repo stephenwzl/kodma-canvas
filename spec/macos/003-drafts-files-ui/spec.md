@@ -1,8 +1,8 @@
 # S003：稿件创建、文件管理与 UI 还原
 
-更新日期：2026-11-17。修订：v1.1（优先级调整，原范围保留）。优先级：**P2**。状态：**macOS 开发暂停，保留后续恢复；开发与运行验收未开始**。
+更新日期：2026-11-17。修订：v1.2。优先级：**P2**。状态：**可独立进入 I1；开发与运行验收未开始**。
 
-当前 P1 已改为 [S004 Web / Cloudflare](../004-web-cloudflare/spec.md)，首版含登录、云端保存与跨设备。本文保留 macOS 原规划，不取消、不废弃，不作为当前执行主线；用户恢复 macOS 开发时再核对范围与进度，不自动开始 I1。
+本规格只覆盖 macOS 原生工作区与本地文件。I1 从已验收的 S002 开始，不依赖 Web 登录、云端存储或部署。
 
 ## 目标与优先级
 
@@ -12,7 +12,7 @@
 
 技术路线继续保留完整 FigCraft 运行时。Agent 暂缓；未来 Agent 按云端接入 MCP 方向另立规格，本阶段不开发本地 Agent 产品入口、云端 MCP 服务、对话、模型或套餐。
 
-关联：[路线图](../../ROADMAP.md)、[产品设计](../../docs/kodma/README.md)、[状态归属](../../docs/kodma/workspace-architecture.md)、[原生承载](../../docs/kodma/canvas-editor-extraction.md)。
+关联：[路线图](../../../ROADMAP.md)、[产品设计](../../../docs/kodma/README.md)、[状态归属](../../../docs/kodma/workspace-architecture.md)、[原生承载](../../../docs/kodma/canvas-editor-extraction.md)。
 
 ## 已知基础与待核对的问题
 
@@ -23,7 +23,7 @@
 - `file.rename` 修改文档名，不直接重命名磁盘路径。不能用标签变化证明文件管理已完成。
 - S002 已验证首页、标签、树和最小设计属性接入；仍需按本轮设计与实际运行逐项记录视觉差距，不能以功能接通替代还原。
 
-源码入口：[原生首页](../../apps/figcraft/src/native_workspace/home.rs)、[原生工作区](../../apps/figcraft/src/native_workspace.rs)、[工作区动作与快照](../../crates/ui-egui/src/workspace.rs)、[文件命令](../../crates/engine/src/cmd/file.rs)、[文件对话框与保存](../../crates/ui-egui/src/app/files.rs)。开发前逐项打开定义，确认复用范围和适配位置。
+源码入口：[原生首页](../../../apps/figcraft/src/native_workspace/home.rs)、[原生工作区](../../../apps/figcraft/src/native_workspace.rs)、[工作区动作与快照](../../../crates/ui-egui/src/workspace.rs)、[文件命令](../../../crates/engine/src/cmd/file.rs)、[文件对话框与保存](../../../crates/ui-egui/src/app/files.rs)。开发前逐项打开定义，确认复用范围和适配位置。
 
 ## 范围
 
@@ -115,5 +115,6 @@ Agent 输入、开始创作和任务模板的生成行为不在本轮；不把�
 
 | 日期 | 修订 | 记录 |
 | --- | --- | --- |
+| 2026-11-17 | v1.2 | macOS 独立推进，解除暂停；原生范围与验收顺序不变。 |
 | 2026-11-17 | v1.1 | 用户调整为 Web P1、Cloudflare 部署；macOS / 本规格暂停 P2，保留后续恢复和原 v1 范围，开发 / 验收尚未开始。 |
 | 2026-11-17 | v1 | 根据用户纠正，下一阶段优先稿件创建、文件管理与 UI 还原；UI 先于功能保障，保留完整 FigCraft 运行时；Agent 暂缓，后续方向为云端 MCP。 |

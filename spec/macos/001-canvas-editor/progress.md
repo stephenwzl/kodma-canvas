@@ -60,7 +60,7 @@ S001 已按本页最终用户验收结论关闭。[亲自验收 case](acceptance
 
 2026-11-16，在文档提交 `834201bd` 之前的同一应用源码上执行过 `cargo xtask ci`。格式与 Clippy 通过；执行到 figcraft-engine 单元测试时，2059 项通过、3 项失败、3 项忽略，CI 停止，后续检查未执行。单独执行的 `cargo xtask docs` 通过。
 
-失败项位于 [board_mindmap_tests.rs](../../crates/engine/src/board_mindmap_tests.rs)：
+失败项位于 [board_mindmap_tests.rs](../../../crates/engine/src/board_mindmap_tests.rs)：
 
 - `a_mind_map_is_a_first_node_with_three_children_on_branches`
 - `more_lines_push_the_siblings_apart`

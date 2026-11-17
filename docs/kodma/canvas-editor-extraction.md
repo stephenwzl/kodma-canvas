@@ -1,8 +1,8 @@
 # Kodma 画布显示与 macOS 原生承载方案
 
-更新日期：2026-11-17。状态：S001 与 S002 均已由用户验收通过并完成。保留完整 FigCraft 运行时的技术路线不变；承载基线见[S001 v2](../../spec/001-canvas-editor/spec.md)，原生工作区结项见[S002 v1.2](../../spec/002-native-workspace/spec.md)和[验收记录](../../spec/002-native-workspace/progress.md)。
+更新日期：2026-11-17。状态：S001 与 S002 均已由用户验收通过并完成。保留完整 FigCraft 运行时的技术路线不变；承载基线见[S001 v2](../../spec/macos/001-canvas-editor/spec.md)，原生工作区结项见[S002 v1.2](../../spec/macos/002-native-workspace/spec.md)和[验收记录](../../spec/macos/002-native-workspace/progress.md)。
 
-当前 macOS 开发暂停、优先级 P2，保留已有成果并计划后续恢复；本文件作为原生承载历史基线。当前 P1 为 [S004 Web / Cloudflare](../../spec/004-web-cloudflare/spec.md)，其承载、存储与部署以 [Web 架构](web-architecture.md)为准。
+macOS 按 S003 独立推进；本文件作为原生承载历史基线。当前 P1 为 [S004 Web / Cloudflare](../../spec/web/004-web-cloudflare/spec.md)，其承载、存储与部署以 [Web 架构](web-architecture.md)为准。
 
 ## 技术路线
 
@@ -35,7 +35,7 @@ S001 已在当前固定 egui / eframe / winit 版本上验证内容视图与 App
 
 ## 实施与验收
 
-按 S001 依次核对 UI 隐藏与布局、实现仅画布显示、验证原生承载、回归现有编辑与控制能力、检查生命周期和上游升级兼容性。实际进展见[迭代记录](../../spec/001-canvas-editor/progress.md)，内容视图所有权、同窗组合及 SwiftUI 承载边界见[实现说明](../../spec/001-canvas-editor/implementation.md)。
+按 S001 依次核对 UI 隐藏与布局、实现仅画布显示、验证原生承载、回归现有编辑与控制能力、检查生命周期和上游升级兼容性。实际进展见[迭代记录](../../spec/macos/001-canvas-editor/progress.md)，内容视图所有权、同窗组合及 SwiftUI 承载边界见[实现说明](../../spec/macos/001-canvas-editor/implementation.md)。
 
 默认 FigCraft 编辑器保留作为行为对照。多稿件、协作、成员跟随、分享权限和 MCP 沿用原实现；完整工作区回归在后续接入时进行，不另设前置协作开发阶段。
 

@@ -1,6 +1,6 @@
 # Kodma Web 与 Cloudflare 架构
 
-更新日期：2026-11-17。对应 **S004 v1.1**。状态：**架构图与规格更新，等待用户确认后才开始开发**。Web P1；macOS / S003 暂停 P2，保留恢复；Agent 暂缓。范围以 [S004](../../spec/004-web-cloudflare/spec.md)为准。
+更新日期：2026-11-17。对应 **S004 v1.1**。状态：**架构图与规格更新，等待用户确认后才开始开发**。Web P1；Agent 暂缓。范围以 [S004](../../spec/web/004-web-cloudflare/spec.md)为准。
 
 ## 当前选择与参考边界
 

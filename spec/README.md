@@ -1,12 +1,8 @@
-# Kodma 实施规格与迭代进度
+# Kodma 实施规格
 
-这里保存每个开发阶段的范围、验收标准和实际进度。产品方向见[路线图](../ROADMAP.md)，当前 P1 为 [Web / Cloudflare 架构](../docs/kodma/web-architecture.md)；macOS 暂停 P2，保留[原生承载方案](../docs/kodma/canvas-editor-extraction.md)供恢复时使用。
+| 平台 | 当前规格 | 下一步 |
+| --- | --- | --- |
+| [Web](web/README.md) | S004：浏览器工作区与 Cloudflare 云端稿件 | 用户确认 v1.1 架构图与规格后进入 I1 |
+| [macOS](macos/README.md) | S003：本地稿件、文件管理与原生 UI | 从已验收的 S002 开始 I1，无需等待 Web |
 
-| 编号 | 规格 | 当前状态 | 进度 |
-| --- | --- | --- | --- |
-| S001 | [保留 FigCraft 运行时的画布显示与原生承载](001-canvas-editor/spec.md) | v2 已完成；用户验收通过（2026-11-16），跨显示比例测试取消 | [迭代记录](001-canvas-editor/progress.md) |
-| S002 | [macOS 原生工作区最小闭环](002-native-workspace/spec.md) | v1.2 已完成；用户验收通过并关闭（2026-11-17） | [迭代记录](002-native-workspace/progress.md) |
-| S003 | [稿件创建、文件管理与 UI 还原](003-drafts-files-ui/spec.md) | v1.1 暂停，P2；保留恢复，开发与验收未开始 | [迭代记录](003-drafts-files-ui/progress.md) |
-| S004 | [Web 工作区与 Cloudflare 云端稿件](004-web-cloudflare/spec.md) | v1.1，P1；DO SQLite 文档 / R2 大资源 / FigCraft 增量；图文待用户确认，未开始开发 / 部署 | [迭代记录](004-web-cloudflare/progress.md) |
-
-每个规格使用独立编号目录，`spec.md` 保存目标、范围和验收条件，`progress.md` 保存实施步骤、验证结果、遗留问题及下一步。范围调整记入变更记录，验证结果包含对应提交或代码版本；未执行的检查保持“未验证”。后续完整产品工作区等阶段另建规格，避免把当前阶段无限扩大。
+两端共用[产品交互与设计系统](../docs/kodma/README.md)，各自在平台目录维护范围（`spec.md`）、进度（`progress.md`）和验收用例（`acceptance.md`）。优先级见[路线图](../ROADMAP.md)，不规定跨平台的开工顺序。一端的验收结果不代替另一端的实测。

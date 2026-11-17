@@ -6,16 +6,16 @@
 
 不拆分 Session、FigApp、UiState，不另写画布编辑循环。新增可选的 `FigApp::canvas_host`，只保存宿主的显示策略、原生区域预留宽度与键盘归属；不写入稿件或改变原来的隐藏 UI 偏好。
 
-[原帧循环](../../crates/ui-egui/src/app.rs)继续执行初始化、对话框结果、控制请求、指针输入、快捷键、IME、渲染、协作同步与保存。仅画布模式跳过首页及标签条绘制，并复用原有隐藏 UI 的布局路径。原生区域由同一布局预留；不创建第二套 Session，不复制 frame 方法。
+[原帧循环](../../../crates/ui-egui/src/app.rs)继续执行初始化、对话框结果、控制请求、指针输入、快捷键、IME、渲染、协作同步与保存。仅画布模式跳过首页及标签条绘制，并复用原有隐藏 UI 的布局路径。原生区域由同一布局预留；不创建第二套 Session，不复制 frame 方法。
 
 | 适配位置 | 目的 | 回归与升级核对点 |
 | --- | --- | --- |
-| [FigApp 与 CanvasHost](../../crates/ui-egui/src/lib.rs) | 增加宿主显示策略，默认 None 保留原行为 | 状态不持久化到文档；默认编辑器仍可用 |
-| [帧布局](../../crates/ui-egui/src/app.rs) | 条件绘制导航、首页与侧栏，预留原生区域 | 文档切换或隐藏 UI 快捷键不能重新露出外围界面；尺寸与命中坐标一致 |
-| [画布输入](../../crates/ui-egui/src/canvas/input.rs) | 原生输入拥有键盘时禁用临时平移及缩放工具键 | 焦点切换时不误改画布；松开前补齐同帧遗漏的末次移动，保持原有事务；IME 路径不替换 |
-| [控制状态](../../crates/ui-egui/src/app/control.rs) | ui.inspect 返回 canvasHost 和实际画布范围 | 外部 Agent 能分辨宿主状态；命令、鉴权及目标文档处理沿用原实现 |
-| [参数与桌面入口](../../apps/figcraft/src/main.rs) | 仅画布与原生验证模式，保留默认启动方式 | 原模式的标题栏、窗口管理与后台逻辑保留；原生区域按 egui 界面缩放换算 |
-| [AppKit 验证宿主](../../apps/figcraft/src/native_canvas.rs) | 同窗原生输入框、宽度滑块与输入源选择，显式焦点和区域同步 | 保持原 contentView、图层与事件循环，升级时重查 winit 的窗口假定 |
+| [FigApp 与 CanvasHost](../../../crates/ui-egui/src/lib.rs) | 增加宿主显示策略，默认 None 保留原行为 | 状态不持久化到文档；默认编辑器仍可用 |
+| [帧布局](../../../crates/ui-egui/src/app.rs) | 条件绘制导航、首页与侧栏，预留原生区域 | 文档切换或隐藏 UI 快捷键不能重新露出外围界面；尺寸与命中坐标一致 |
+| [画布输入](../../../crates/ui-egui/src/canvas/input.rs) | 原生输入拥有键盘时禁用临时平移及缩放工具键 | 焦点切换时不误改画布；松开前补齐同帧遗漏的末次移动，保持原有事务；IME 路径不替换 |
+| [控制状态](../../../crates/ui-egui/src/app/control.rs) | ui.inspect 返回 canvasHost 和实际画布范围 | 外部 Agent 能分辨宿主状态；命令、鉴权及目标文档处理沿用原实现 |
+| [参数与桌面入口](../../../apps/figcraft/src/main.rs) | 仅画布与原生验证模式，保留默认启动方式 | 原模式的标题栏、窗口管理与后台逻辑保留；原生区域按 egui 界面缩放换算 |
+| [AppKit 验证宿主](../../../apps/figcraft/src/native_canvas.rs) | 同窗原生输入框、宽度滑块与输入源选择，显式焦点和区域同步 | 保持原 contentView、图层与事件循环，升级时重查 winit 的窗口假定 |
 
 ## 原生承载方式及限制
 

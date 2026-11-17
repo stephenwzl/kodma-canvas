@@ -8,7 +8,7 @@
 
 ## 已确认的方向
 
-- 用户将 Web 设为 P1，Cloudflare 为部署目标；macOS 暂停 P2，保留后续恢复，非取消 / 废弃。
+- Web 优先级 P1，Cloudflare 为部署目标；本页单独跟踪 Web。
 - 用户明确 Web 首版包含登录、云端保存和跨设备打开。
 - UI 优先：设计核对 → 浏览器高保真运行与用户视觉确认 → 功能保障与测试。
 - 保留完整 FigCraft Rust/WASM 运行时；Web 宿主独立定义，不沿用 AppKit / 本机路径 / 系统废纸篓。
@@ -30,7 +30,7 @@ AC01–AC12 / C01–C12 及新增 D01–D08 均未执行；暂无 Kodma Web 运�
 ## v1.1 图文更新（本轮）
 
 - 静态源码基线为 b13604e1，核对 FigCraft 属性级变更、client / batch / sequence、原持久化钩子及图片携带字节的定义；不新写实现。
-- 经 FigCraft MCP 确认当前协作 live 后更新同一文件的架构页。当前页改为“Web 架构 v1.1 · 待确认”，四张画板覆盖拓扑、增量确认、资源外置、恢复与环境 / 门槛；原五张草案移入历史页，保留原生 CLI 合成样本而不冒充 DO 测试。定位见 [架构图索引](../../docs/kodma/web-architecture.md#live-架构图定位)。
+- 经 FigCraft MCP 确认当前协作 live 后更新同一文件的架构页。当前页改为“Web 架构 v1.1 · 待确认”，四张画板覆盖拓扑、增量确认、资源外置、恢复与环境 / 门槛；原五张草案移入历史页，保留原生 CLI 合成样本而不冒充 DO 测试。定位见 [架构图索引](../../../docs/kodma/web-architecture.md#live-架构图定位)。
 - 同步 S004 范围、规则、实施顺序、case 与产品入口，新增 D01–D08，撤销“R2 整稿保存”和“旧 revision 一律拒绝”的旧路线，明确图片桥接、D1 / DO / R2 非全局事务、PITR 与资源保留协调。
 - 官方依据为 tldraw sync 和 Cloudflare DO SQLite / 生命周期文档；只参考公开职责分层，无第三方代码 / 资产或新依赖。
 - 本轮未重新逐项核对高保真 UI、未构建 / 启动产品、未测试 DO 运行时、未创建 Cloudflare 资源、未部署。图文确认后再开始 I1。
@@ -45,7 +45,7 @@ AC01–AC12 / C01–C12 及新增 D01–D08 均未执行；暂无 Kodma Web 运�
 
 源码基线 `63bcf296`。已读取产品路线图、设计 / 工作区 / 原生架构及 S003；核对 `figcraft-web`、同页 host bridge、页内 API、内存 saved_files、CanvasHost、Web 打包和 native-only server 文档。确认有可复用的完整浏览器运行时入口，但原生服务器不能直接当作 Worker；save 事件发送、最多 16 份的内存捕获均不是云端或浏览器持久化证明。
 
-查阅 Cloudflare 官方 Static Assets、SPA 路由、Workers 限制、D1 / R2 binding、R2 一致性与 Secrets 文档，建立 Workers + D1 + R2 方案；链接见 [Web 架构](../../docs/kodma/web-architecture.md)。未实际构建 Web 产物、测量本轮 WASM、连接 live 设计、操作浏览器或部署。
+查阅 Cloudflare 官方 Static Assets、SPA 路由、Workers 限制、D1 / R2 binding、R2 一致性与 Secrets 文档，建立 Workers + D1 + R2 方案；链接见 [Web 架构](../../../docs/kodma/web-architecture.md)。未实际构建 Web 产物、测量本轮 WASM、连接 live 设计、操作浏览器或部署。
 
 本次仅新增 / 更新 Markdown：Web 规格、case、架构、进度和入口；S003 标记暂停 P2，历史范围保留；S001 / S002 不变更验收结论。origin 未找到相关 Web / Cloudflare PR，issues 已禁用；不评论无关上游 issue，不创建开发分支。
 

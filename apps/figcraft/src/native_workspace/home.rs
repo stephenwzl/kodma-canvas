@@ -5,12 +5,17 @@ use objc2::{MainThreadMarker, MainThreadOnly};
 use objc2_app_kit::{NSBezelStyle, NSBox, NSButton, NSButtonType, NSFont, NSScrollView, NSTextField, NSView};
 use objc2_foundation::{NSPoint, NSString};
 
-use super::{color, panel, rect, style};
+use super::{color, panel, rect, row_pool::RowPool, style};
 use figcraft_ui_egui::workspace::{Action, RecentFile};
 
 struct Row {
     file: RecentFile,
     button: style::Button,
+}
+impl Drop for Row {
+    fn drop(&mut self) {
+        self.button.view.removeFromSuperview();
+    }
 }
 
 pub(super) struct Controls {
@@ -23,7 +28,7 @@ pub(super) struct Controls {
     error: Retained<NSTextField>,
     scroll: Retained<NSScrollView>,
     rows_view: Retained<NSView>,
-    rows: Vec<Row>,
+    rows: RowPool<Row>,
     previous_error: Option<String>,
     geometry: Option<(f64, f64, bool, bool)>,
 }
@@ -67,7 +72,20 @@ impl Controls {
         left.addSubview(&scroll);
         left.addSubview(&error);
 
-        Ok(Self { new, open, home, search, settings, underline, error, scroll, rows_view, rows: Vec::new(), previous_error: None, geometry: None })
+        Ok(Self {
+            new,
+            open,
+            home,
+            search,
+            settings,
+            underline,
+            error,
+            scroll,
+            rows_view,
+            rows: RowPool::new(),
+            previous_error: None,
+            geometry: None,
+        })
     }
 
     pub(super) fn take_actions(&self) -> Vec<Action> {
@@ -81,7 +99,7 @@ impl Controls {
         if self.home.pressed() {
             actions.push(Action::Home);
         }
-        for row in &self.rows {
+        for row in self.rows.iter() {
             if row.button.pressed() {
                 actions.push(Action::Recent(row.file.path.clone()));
             }
@@ -100,22 +118,31 @@ impl Controls {
         height: f64,
     ) {
         let changed = self.rows.iter().map(|r| &r.file).ne(recents.iter());
-        if changed {
-            for row in &self.rows {
-                row.button.view.removeFromSuperview();
-            }
-            self.rows.clear();
-            if let Some(mtm) = MainThreadMarker::new() {
-                for file in recents {
+        if changed && let Some(mtm) = MainThreadMarker::new() {
+            self.rows.rebind(
+                recents,
+                |file| {
                     let title: String = file.name.chars().take(80).collect();
                     let button = style::Button::new(mtm, &self.rows_view, &title, 0xf7f5f2, None, 12.);
                     button.icon("folder", 0x121212);
                     button.leading();
                     button.control.setFont(Some(&NSFont::systemFontOfSize(16.)));
-                    button.control.setToolTip(Some(&NSString::from_str(&file.path)));
-
-                    self.rows.push(Row { file, button });
-                }
+                    Row { file: file.clone(), button }
+                },
+                |row, file| {
+                    row.button.pressed();
+                    row.button.title(&file.name.chars().take(80).collect::<String>());
+                    if row.file.name.is_empty() != file.name.is_empty() {
+                        row.button.icon("folder", 0x121212);
+                    }
+                    row.button.control.setToolTip(Some(&NSString::from_str(&file.path)));
+                    row.button.view.setHidden(false);
+                    row.file = file;
+                },
+                |row, file| !row.button.tracking() || row.file.path == file.path,
+            );
+            for row in self.rows.inactive() {
+                row.button.view.setHidden(true);
             }
         }
         if self.previous_error != error {
@@ -165,7 +192,7 @@ impl Controls {
         for button in [&self.new, &self.open, &self.home] {
             button.enabled(!busy);
         }
-        for row in &self.rows {
+        for row in self.rows.iter() {
             row.button.enabled(!busy);
             row.button.paint(if !is_home && active_name == Some(row.file.name.as_str()) { 0xeeece8 } else { 0xf7f5f2 });
         }

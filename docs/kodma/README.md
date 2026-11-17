@@ -1,10 +1,10 @@
 # Kodma 产品设计与工作进度
 
-更新日期：2026-11-16。Kodma 是优先面向 macOS 的 AI 画布工作区。当前已完成四页高保真 UI 更新、手绘图标与字标、稿件级成员入口和聚焦原型。技术架构页已补齐端与服务端拓扑、客户端分层和两条 Agent 命令链路。当前决定保留完整 FigCraft 运行时，以 UI 隐藏、区域适配和原生承载验证为技术路线；S001 已由用户验收通过并完成。S002 I1–I3 已接入原生工作区框架、首页文件及标签切换关闭；完整产品工作区、账户、云端同步和 Agent 套餐仍未完成。
+更新日期：2026-11-17。Kodma 是优先面向 macOS 的 AI 画布工作区。当前已完成四页高保真 UI 更新、手绘图标与字标、稿件级成员入口和聚焦原型。技术架构页已补齐端与服务端拓扑、客户端分层和两条 Agent 命令链路。当前决定保留完整 FigCraft 运行时，以 UI 隐藏、区域适配和原生承载验证为技术路线；S001 已由用户验收通过并完成。S002 I1–I3 已接入原生工作区框架、首页文件及标签切换关闭；完整产品工作区、账户、云端同步和 Agent 套餐仍未完成。
 
 上市预热：[创业者篇 · 27 秒分镜、10 张 App 高保真画板与试拍进度](founder-storyboard.md)。
 
-S002 当前按用户要求优先还原整窗 UI：首页、导航、标签、浮动工具条与固定设计右栏已实际运行，并准备首页 / 编辑态的原生截图及设计叠加对照，见[整窗 UI 对照记录](../../spec/002-native-workspace/visual-review.md)。I4 功能保障与工程验收已完成，见[亲验步骤](../../spec/002-native-workspace/i4-properties.md)。系统中文待用户亲验。S002 v1.2 的单稿页面与图层树、紫色选框已接入，见[本轮实现与亲验](../../spec/002-native-workspace/i5-navigation.md)；I5 视觉评审和完整验收继续。
+S002 当前按用户要求优先还原整窗 UI：首页、导航、标签、浮动工具条与固定设计右栏已实际运行，并准备首页 / 编辑态的原生截图及设计叠加对照，见[整窗 UI 对照记录](../../spec/002-native-workspace/visual-review.md)。I4 功能保障与工程验收已完成，见[亲验步骤](../../spec/002-native-workspace/i4-properties.md)。系统中文待用户亲验。S002 v1.2 的单稿页面与图层树、紫色选框已接入，见[本轮实现与亲验](../../spec/002-native-workspace/i5-navigation.md)；用户决定沿用当前 UI；I5 已补窗口 / 缩放、后台、保存重启及资源对照，并修正控件重建开销。中文由用户亲验，S002 等待最终验收。
 
 ## 当前交付与下一步
 
@@ -21,7 +21,7 @@ S002 当前按用户要求优先还原整窗 UI：首页、导航、标签、浮
 
 稿件右侧栏提供「设计」和「Kodma Agent」标签。成员入口位于该栏右侧，头像错位叠放，展开后显示成员姓名。04 用外部 Agent 加入稿件的场景演示成员聚焦与退出。分享按钮紧邻头像右侧。分享弹窗和右侧标签切换尚未接入原型；真实远端视口跟随仍需在 Kodma 宿主验证。
 
-当前已按[原生承载方案](canvas-editor-extraction.md)保留完整 FigCraft 运行时，实现仅画布显示、区域适配及 AppKit 同窗验证宿主，并补齐编辑、后台协作和短程生命周期性能证据。用户已确认 S001 验收通过，跨显示比例测试已取消。[S002](../../spec/002-native-workspace/spec.md)已补齐 [live 高保真来源与范围对照](../../spec/002-native-workspace/design-reference.md)，定义原生首页、稿件标签与固定设计右栏的最小闭环，以及[双稿件验收 case](../../spec/002-native-workspace/acceptance.md)。I1 已完成宿主接口与原生框架、真实文件 / MCP 和本轮验收，见[实施说明](../../spec/002-native-workspace/implementation.md)；I2 已完成首页文件操作与本轮验收，见[实施与亲验步骤](../../spec/002-native-workspace/i2-home.md)；I3 已完成稿件标签、切换关闭与状态隔离，见[实施与亲验步骤](../../spec/002-native-workspace/i3-tabs.md)；I4 已完成固定设计右栏功能保障与本轮工程验收，下一步 I5 完整闭环与升级回归，继续复用现有稿件和命令体系。[S001 测试稿与人工 case](../../spec/001-canvas-editor/acceptance.md)保留为回归入口。[稿件工作区架构](workspace-architecture.md)约定状态与命令归属。多稿件、撤销、协作、成员跟随、分享权限和 MCP 沿用 FigCraft 现有能力，作为宿主适配后的回归验收内容；必要的基线记录随适配进行，不另设前置协作开发阶段。
+当前已按[原生承载方案](canvas-editor-extraction.md)保留完整 FigCraft 运行时，实现仅画布显示、区域适配及 AppKit 同窗验证宿主，并补齐编辑、后台协作和短程生命周期性能证据。用户已确认 S001 验收通过，跨显示比例测试已取消。[S002](../../spec/002-native-workspace/spec.md)已补齐 [live 高保真来源与范围对照](../../spec/002-native-workspace/design-reference.md)，定义原生首页、稿件标签与固定设计右栏的最小闭环，以及[双稿件验收 case](../../spec/002-native-workspace/acceptance.md)。I1 已完成宿主接口与原生框架、真实文件 / MCP 和本轮验收，见[实施说明](../../spec/002-native-workspace/implementation.md)；I2 已完成首页文件操作与本轮验收，见[实施与亲验步骤](../../spec/002-native-workspace/i2-home.md)；I3 已完成稿件标签、切换关闭与状态隔离，见[实施与亲验步骤](../../spec/002-native-workspace/i3-tabs.md)；I4 已完成固定设计右栏功能保障与本轮工程验收，I5 完整闭环与核心升级已补工程证据，继续复用现有稿件和命令体系；质量门禁和资源测量限制见迭代进度。[S001 测试稿与人工 case](../../spec/001-canvas-editor/acceptance.md)保留为回归入口。[稿件工作区架构](workspace-architecture.md)约定状态与命令归属。多稿件、撤销、协作、成员跟随、分享权限和 MCP 沿用 FigCraft 现有能力，作为宿主适配后的回归验收内容；必要的基线记录随适配进行，不另设前置协作开发阶段。
 
 ### 进度记录
 

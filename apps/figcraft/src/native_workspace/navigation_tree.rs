@@ -1,5 +1,5 @@
 //! Native page/layer rows. Only visible rows own AppKit controls; disclosure is UI state.
-use super::{color, rect, style};
+use super::{color, rect, row_pool::RowPool, style};
 use figcraft_ui_egui::workspace::{Action, Snapshot};
 use objc2::{MainThreadMarker, MainThreadOnly, rc::Retained};
 use objc2_app_kit::{NSFont, NSScrollView, NSView};
@@ -17,17 +17,25 @@ struct Item {
     enabled: bool,
 }
 struct Row {
+    owner: Option<(u64, u64)>,
     item: Item,
     button: style::Button,
     disclosure: style::Button,
 }
+impl Drop for Row {
+    fn drop(&mut self) {
+        self.button.view.removeFromSuperview();
+        self.disclosure.view.removeFromSuperview();
+    }
+}
 struct List {
     scroll: Retained<NSScrollView>,
     content: Retained<NSView>,
-    rows: Vec<Row>,
+    rows: RowPool<Row>,
     data: Vec<Item>,
     range: (usize, usize),
     geometry: Option<(f64, f64, f64)>,
+    owner: Option<(u64, u64)>,
 }
 impl List {
     fn new(mtm: MainThreadMarker, parent: &NSView) -> Self {
@@ -38,9 +46,11 @@ impl List {
         let content = NSView::initWithFrame(NSView::alloc(mtm), rect(0., 0., 190., 44.));
         scroll.setDocumentView(Some(&content));
         parent.addSubview(&scroll);
-        Self { scroll, content, rows: Vec::new(), data: Vec::new(), range: (0, 0), geometry: None }
+        Self { scroll, content, rows: RowPool::new(), data: Vec::new(), range: (0, 0), geometry: None, owner: None }
     }
-    fn sync(&mut self, data: Vec<Item>, y: f64, height: f64, stride: f64, reset: bool, busy: bool) {
+    fn sync(&mut self, data: Vec<Item>, y: f64, height: f64, stride: f64, owner: Option<(u64, u64)>, busy: bool) {
+        let reset = self.owner != owner;
+        self.owner = owner;
         let height = height.max(1.);
         let total = (data.len() as f64 * stride).max(height);
         let changed = self.data != data;
@@ -57,41 +67,62 @@ impl List {
         }
         let start = ((total - clip.bounds().origin.y - height).max(0.) / stride).floor() as usize;
         let end = (start + (height / stride).ceil() as usize + 1).min(data.len());
-        if changed || geometry || self.range != (start, end) {
-            for row in &self.rows {
-                row.button.view.removeFromSuperview();
-                row.disclosure.view.removeFromSuperview();
-            }
-            self.rows.clear();
+        if reset || changed || geometry || self.range != (start, end) {
             if let Some(mtm) = MainThreadMarker::new() {
-                for (i, item) in data.iter().enumerate().take(end).skip(start) {
-                    let button = style::Button::new(mtm, &self.content, &item.name, if item.selected { 0xeceae6 } else { 0xf7f5f2 }, None, 7.);
-                    button.leading();
-                    button.icon(item.icon, 0x736e69);
-                    button.control.setFont(Some(&NSFont::systemFontOfSize(if stride == 44. { 16. } else { 15. })));
-                    let row_y = total - i as f64 * stride - if stride == 44. { 44. } else { 34. };
-                    button.frame(0., row_y, 190., if stride == 44. { 44. } else { 34. });
-                    let indent = if stride == 44. { 0. } else { item.depth.min(8) as f64 * 12. + 14. };
-                    button.icon_offset(14. + indent);
-                    button.control.setFrame(rect(
-                        if stride == 44. { 49. } else { 34. + indent },
-                        0.,
-                        (142. - indent).max(1.),
-                        if stride == 44. { 44. } else { 34. },
-                    ));
-                    button.control.setContentTintColor(Some(&color(0x242220)));
-                    let disclosure = style::Button::new(mtm, &self.content, "", if item.selected { 0xeceae6 } else { 0xf7f5f2 }, None, 0.);
-                    disclosure.icon(if item.open { "chevronDown" } else { "chevron" }, 0x736e69);
-                    disclosure.frame(4. + item.depth.min(8) as f64 * 12., row_y + 7., 20., 20.);
-                    disclosure.icon_offset(2.);
-                    disclosure.view.setHidden(!item.branch);
-                    self.rows.push(Row { item: item.clone(), button, disclosure });
+                self.rows.rebind(
+                    data.iter().enumerate().take(end).skip(start),
+                    |(_, item)| {
+                        let button = style::Button::new(mtm, &self.content, &item.name, if item.selected { 0xeceae6 } else { 0xf7f5f2 }, None, 7.);
+                        button.leading();
+                        button.icon(item.icon, 0x736e69);
+                        button.control.setFont(Some(&NSFont::systemFontOfSize(if stride == 44. { 16. } else { 15. })));
+                        button.control.setContentTintColor(Some(&color(0x242220)));
+                        let disclosure = style::Button::new(mtm, &self.content, "", if item.selected { 0xeceae6 } else { 0xf7f5f2 }, None, 0.);
+                        disclosure.icon(if item.open { "chevronDown" } else { "chevron" }, 0x736e69);
+                        Row { owner, item: (*item).clone(), button, disclosure }
+                    },
+                    |row, (i, item)| {
+                        row.button.pressed();
+                        row.disclosure.pressed();
+                        let icon_changed = row.item.icon != item.icon || row.item.name.is_empty() != item.name.is_empty();
+                        row.button.title(&item.name);
+                        if icon_changed {
+                            row.button.icon(item.icon, 0x736e69);
+                        }
+                        if row.item.open != item.open {
+                            row.disclosure.icon(if item.open { "chevronDown" } else { "chevron" }, 0x736e69);
+                        }
+                        row.item = item.clone();
+                        row.owner = owner;
+                        let bg = if item.selected { 0xeceae6 } else { 0xf7f5f2 };
+                        row.button.paint(bg);
+                        row.disclosure.paint(bg);
+                        row.button.view.setHidden(false);
+                        let row_y = total - i as f64 * stride - if stride == 44. { 44. } else { 34. };
+                        row.button.frame(0., row_y, 190., if stride == 44. { 44. } else { 34. });
+                        let indent = if stride == 44. { 0. } else { item.depth.min(8) as f64 * 12. + 14. };
+                        row.button.icon_offset(14. + indent);
+                        row.button.control.setFrame(rect(
+                            if stride == 44. { 49. } else { 34. + indent },
+                            0.,
+                            (142. - indent).max(1.),
+                            if stride == 44. { 44. } else { 34. },
+                        ));
+                        row.disclosure.frame(4. + item.depth.min(8) as f64 * 12., row_y + 7., 20., 20.);
+                        row.disclosure.icon_offset(2.);
+                        row.disclosure.view.setHidden(!item.branch);
+                    },
+                    |row, (_, item)| (row.owner == owner && row.item.id == item.id) || (!row.button.tracking() && !row.disclosure.tracking()),
+                );
+                for row in self.rows.inactive() {
+                    row.button.view.setHidden(true);
+                    row.disclosure.view.setHidden(true);
                 }
             }
             self.data = data;
             self.range = (start, end);
         }
-        for row in &self.rows {
+        for row in self.rows.iter() {
             row.button.enabled(!busy && row.item.enabled);
             row.disclosure.enabled(!busy && row.item.enabled);
         }
@@ -111,12 +142,12 @@ impl Tree {
     pub fn actions(&mut self) -> Vec<Action> {
         let Some((uid, page)) = self.owner else { return Vec::new() };
         let mut actions = Vec::new();
-        for row in &self.pages.rows {
+        for row in self.pages.rows.iter() {
             if row.button.pressed() {
                 actions.push(Action::Page(uid, row.item.id));
             }
         }
-        for row in &self.layers.rows {
+        for row in self.layers.rows.iter() {
             if row.disclosure.pressed() {
                 let key = (uid, page, row.item.id);
                 if !self.expanded.remove(&key) && self.expanded.len() < 65536 {
@@ -177,7 +208,7 @@ impl Tree {
                 enabled: !p.divider,
             })
             .collect();
-        self.pages.sync(pages, h - 155. - page_height, page_height, 44., reset, s.busy);
+        self.pages.sync(pages, h - 155. - page_height, page_height, 44., owner, s.busy);
         let mut hidden = None;
         let mut layers = Vec::new();
         if let Some((uid, page)) = owner {
@@ -207,7 +238,7 @@ impl Tree {
             }
         }
         let top = divider + 62.;
-        self.layers.sync(layers, 120., (h - top - 120.).max(1.), 38., reset, s.busy);
+        self.layers.sync(layers, 120., (h - top - 120.).max(1.), 38., owner, s.busy);
         divider
     }
 }

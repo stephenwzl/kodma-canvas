@@ -1,7 +1,9 @@
 //! Kodma's native visual tokens and original primitive icons. No OS or product icon set.
 use super::{color, panel, rect};
 use objc2::{AnyThread, MainThreadMarker, MainThreadOnly, rc::Retained};
-use objc2_app_kit::{NSBox, NSButton, NSButtonType, NSCellImagePosition, NSFont, NSImage, NSImageView, NSLineBreakMode, NSTextAlignment, NSView};
+use objc2_app_kit::{
+    NSBox, NSButton, NSButtonType, NSCellImagePosition, NSEvent, NSFont, NSImage, NSImageView, NSLineBreakMode, NSTextAlignment, NSView,
+};
 use objc2_foundation::{NSData, NSSize, NSString};
 use std::{cell::RefCell, io::Cursor};
 
@@ -89,14 +91,25 @@ impl Button {
         self.hit.setState(0);
         pressed && self.control.isEnabled()
     }
+    pub fn tracking(&self) -> bool {
+        // Highlight disappears when a held pointer leaves the button, before mouse-up.
+        NSEvent::pressedMouseButtons() != 0 || self.control.isHighlighted() || self.hit.isHighlighted()
+    }
     pub fn icon(&self, name: &str, rgb: u32) {
         if let (Some(image), Some(mtm)) = (icon(name, rgb, 16.0), MainThreadMarker::new()) {
             if self.control.title().to_string().is_empty() {
+                if let Some(view) = self.icon.borrow().as_ref() {
+                    view.setHidden(true);
+                }
                 self.control.setImage(Some(&image));
                 self.control.setImagePosition(NSCellImagePosition::ImageOnly);
                 return;
             }
+            // A recycled slot can change between an unnamed icon-only row and a named row.
+            self.control.setImage(None);
+            self.control.setImagePosition(NSCellImagePosition::NoImage);
             if let Some(view) = self.icon.borrow().as_ref() {
+                view.setHidden(false);
                 view.setImage(Some(&image));
                 return;
             }

@@ -18,6 +18,7 @@ mod home;
 mod inspector;
 mod navigation;
 mod navigation_tree;
+mod row_pool;
 mod style;
 mod tabs;
 mod toolbar;

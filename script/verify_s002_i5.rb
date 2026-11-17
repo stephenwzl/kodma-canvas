@@ -20,6 +20,15 @@ agent=lambda do |color,success=true|
   out
 end
 begin
+  protected_nodes={};protected_pages={}
+  %w[A B].each do |tag|
+    switch.call(tag)
+    protected_nodes[tag]=%w[text helper gradient rich parent child].filter_map do |key|
+      id=m.fetch(tag)[key]
+      [id,c.request('node.get',{id:id})] if id
+    end.to_h
+    protected_pages[tag]=c.request('ui.workspace').dig('snapshot','navigation','pages').map{|page|page.slice('id','name','divider')}
+  end
   switch.call('A'); c.run('select.set',{ids:[m['A']['node']]})
   original=c.run('node.get',{id:m['A']['node']})
   switch.call('B');b=c.request('document.inspect')
@@ -56,6 +65,8 @@ begin
   %w[A B].each do |tag|
     switch.call(tag);c.run('file.close');c.run('file.open',{path:m[tag]['path']})
     check.call("#{tag} saved data reopened",c.run('node.get',{id:m[tag]['node']})==expected[tag])
+    check.call("#{tag} complex styles and child data preserved",protected_nodes[tag].all?{|id,value|c.request('node.get',{id:id})==value})
+    check.call("#{tag} page identities preserved",c.request('ui.workspace').dig('snapshot','navigation','pages').map{|page|page.slice('id','name','divider')}==protected_pages[tag])
   end
   report[:cycles]=30
   report[:scope]='short protocol/MCP probe; not native input acceptance or a long-term leak guarantee'

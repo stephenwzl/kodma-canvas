@@ -1,7 +1,9 @@
 //! Presentation-only tabs; identity and close/save continuations remain in the original runtime.
 use super::{
     home::{button, pressed},
-    panel, rect, style,
+    panel, rect,
+    row_pool::RowPool,
+    style,
 };
 use figcraft_ui_egui::{
     windows::CloseAnswer,
@@ -22,6 +24,13 @@ struct Tab {
     underline: Retained<NSBox>,
     close: Retained<NSButton>,
 }
+impl Drop for Tab {
+    fn drop(&mut self) {
+        self.select.view.removeFromSuperview();
+        self.underline.removeFromSuperview();
+        self.close.removeFromSuperview();
+    }
+}
 struct Question {
     uid: u64,
     future: Pin<Box<dyn Future<Output = rfd::MessageDialogResult>>>,
@@ -34,7 +43,7 @@ pub(super) struct Tabs {
     save: Retained<NSButton>,
     save_as: Retained<NSButton>,
     new: style::Button,
-    rows: Vec<Tab>,
+    rows: RowPool<Tab>,
     active: Option<u64>,
     geometry: Option<(f64, usize)>,
     question: Option<Question>,
@@ -70,7 +79,7 @@ impl Tabs {
         view.addSubview(&forward);
         view.addSubview(&save);
         view.addSubview(&save_as);
-        Ok(Self { scroll, content, back, forward, save, save_as, new, rows: Vec::new(), active: None, geometry: None, question: None, alert })
+        Ok(Self { scroll, content, back, forward, save, save_as, new, rows: RowPool::new(), active: None, geometry: None, question: None, alert })
     }
     pub(super) fn take_actions(&mut self) -> Vec<Action> {
         let mut actions = Vec::new();
@@ -98,7 +107,7 @@ impl Tabs {
                 self.question = None;
             }
         }
-        for tab in &self.rows {
+        for tab in self.rows.iter() {
             if pressed(&tab.close) {
                 actions.push(Action::Close(tab.uid));
             }
@@ -118,15 +127,10 @@ impl Tabs {
     }
     pub(super) fn sync(&mut self, snapshot: &Snapshot, width: f64) {
         let ids_changed = self.rows.iter().map(|r| r.uid).ne(snapshot.documents.iter().map(|d| d.id));
-        if ids_changed {
-            for row in &self.rows {
-                row.select.view.removeFromSuperview();
-                row.underline.removeFromSuperview();
-                row.close.removeFromSuperview();
-            }
-            self.rows.clear();
-            if let Some(mtm) = MainThreadMarker::new() {
-                for doc in &snapshot.documents {
+        if ids_changed && let Some(mtm) = MainThreadMarker::new() {
+            self.rows.rebind(
+                &snapshot.documents,
+                |doc| {
                     let select = style::Button::new(mtm, &self.content, &doc.name, 0xffffff, None, 12.);
                     select.icon("folder", 0x736e69);
                     select.leading();
@@ -134,11 +138,23 @@ impl Tabs {
                     let underline = panel(mtm, 0x121212);
                     self.content.addSubview(&underline);
                     let close = button(mtm, "×");
-                    close.setToolTip(Some(&NSString::from_str(&format!("关闭 {}", doc.name))));
-
                     self.content.addSubview(&close);
-                    self.rows.push(Tab { uid: doc.id, select, close, underline });
-                }
+                    Tab { uid: doc.id, select, close, underline }
+                },
+                |row, doc| {
+                    row.select.pressed();
+                    row.close.setState(0);
+                    row.uid = doc.id;
+                    row.select.view.setHidden(false);
+                    row.close.setHidden(false);
+                    row.close.setToolTip(Some(&NSString::from_str(&format!("关闭 {}", doc.name))));
+                },
+                |row, doc| row.uid == doc.id || (!row.select.tracking() && !row.close.isHighlighted()),
+            );
+            for row in self.rows.inactive() {
+                row.select.view.setHidden(true);
+                row.underline.setHidden(true);
+                row.close.setHidden(true);
             }
         }
         let viewport = (width - 300.0).max(1.0);
@@ -156,7 +172,11 @@ impl Tabs {
         for (index, (row, doc)) in self.rows.iter().zip(&snapshot.documents).enumerate() {
             let name: String = doc.name.chars().take(60).collect();
             let title = format!("{}{}{}", "", name, if doc.dirty { " •" } else { "" });
+            let icon_mode_changed = row.select.control.title().to_string().is_empty() != title.is_empty();
             row.select.title(&title);
+            if icon_mode_changed {
+                row.select.icon("folder", 0x736e69);
+            }
             row.select.paint(0xffffff);
             let font =
                 if active == Some(doc.id) { objc2_app_kit::NSFont::boldSystemFontOfSize(14.) } else { objc2_app_kit::NSFont::systemFontOfSize(14.) };

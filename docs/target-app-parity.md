@@ -57,7 +57,7 @@ multiplicative discounts.
   installed at `/Applications/Figma.app`. FigCraft is measured as of `origin/main` d452da3
   (2026-10-10, PR #99).
 - **The installed app, names and public listings only.** FigCraft is clean-room
-  ([`AGENTS.md`](../AGENTS.md)): nothing inside the bundle's code or web assets was read. From
+  ([`AGENTS.md`](../apps/figcraft/AGENTS.md)): nothing inside the bundle's code or web assets was read. From
   `Info.plist`: one document type, `com.figma.document`, extensions `fig`, `jam`, `deck`
   (MIME `application/x-figma`), and the `figma://` URL scheme. The `.lproj` folders are
   Electron/Chromium locale packs (60+), not Figma's UI languages; the UI languages come from

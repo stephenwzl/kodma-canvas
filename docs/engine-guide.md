@@ -190,7 +190,7 @@ If you clone it after a first build, run `cargo clean -p figcraft-text` once so 
 
 For the web build, install [trunk](https://trunkrs.dev/) and run `cargo xtask wasm`.
 
-New contributors and AI agents: start with [`AGENTS.md`](../AGENTS.md), then [`docs/`](.).
+New contributors and AI agents: start with [`AGENTS.md`](../apps/figcraft/AGENTS.md), then [`docs/`](.).
 
 Installers for macOS (universal, signed and notarized), Windows (x64, x86 and arm64), Linux (AppImage, `.deb`, `.rpm`, Flatpak and tarball), FreeBSD and the web are attached to each [GitHub release](https://github.com/storytold/figcraft/releases). Maintainers: [`docs/releasing.md`](releasing.md) explains how releases are built, signed and published.
 

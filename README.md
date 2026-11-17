@@ -22,4 +22,4 @@ Kodma 是一个以稿件为单位的 AI 画布工作区，当前优先交付 Web
 cargo run -p figcraft
 ```
 
-组件的构建条件、协议、测试与维护资料见[开发文档索引](docs/README.md)。贡献规则见 [AGENTS.md](AGENTS.md)。源码采用 [MIT](LICENSE-MIT) 或 [Apache-2.0](LICENSE-APACHE) 许可，素材与品牌标识的来源及许可见 [ATTRIBUTION.md](ATTRIBUTION.md)。
+组件的构建条件、协议、测试与维护资料见[开发文档索引](docs/README.md)。FigCraft 原有规则见 [apps/figcraft/AGENTS.md](apps/figcraft/AGENTS.md)。源码采用 [MIT](LICENSE-MIT) 或 [Apache-2.0](LICENSE-APACHE) 许可，素材与品牌标识的来源及许可见 [ATTRIBUTION.md](ATTRIBUTION.md)。

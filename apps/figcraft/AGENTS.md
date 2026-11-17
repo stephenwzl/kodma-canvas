@@ -55,14 +55,14 @@ Kodma is the product developed in this repository. FigCraft supplies the Rust ca
 
 ## Start every session here
 
-1. Read the [Kodma roadmap](ROADMAP.md) and [product decisions and design progress](docs/kodma/README.md). Choose unassigned product work from the next Kodma milestone.
-2. For document state, sessions, Agent execution or sharing, read the [workspace architecture](docs/kodma/workspace-architecture.md). For native hosting, use the [canvas extraction plan](docs/kodma/canvas-editor-extraction.md).
-3. For work on the FigCraft component, read its [architecture](docs/architecture.md) and the relevant [engine gaps](docs/gaps.md). Verify behavior and update the progress record for the affected product or component.
+1. Read the [Kodma roadmap](../../ROADMAP.md) and [product decisions and design progress](../../docs/kodma/README.md). Choose unassigned product work from the next Kodma milestone.
+2. For document state, sessions, Agent execution or sharing, read the [workspace architecture](../../docs/kodma/workspace-architecture.md). For native hosting, use the [canvas extraction plan](../../docs/kodma/canvas-editor-extraction.md).
+3. For work on the FigCraft component, read its [architecture](../../docs/architecture.md) and the relevant [engine gaps](../../docs/gaps.md). Verify behavior and update the progress record for the affected product or component.
 
 `plan/` is an optional gitignored notebook. Behaviour reference notes may be in `plan/figma/*.md`.
 Do not ask for it, and do not stop when it is absent.
 
-Kodma canvas selection outlines use `canvas/selection` (violet `#6738EF`). Apply this in the Kodma host when reusing the FigCraft renderer. See the [product design system](docs/kodma/README.md#design-system-v11).
+Kodma canvas selection outlines use `canvas/selection` (violet `#6738EF`). Apply this in the Kodma host when reusing the FigCraft renderer. See the [product design system](../../docs/kodma/README.md#design-system-v11).
 
 ## Non-negotiables
 
@@ -84,7 +84,7 @@ Kodma canvas selection outlines use `canvas/selection` (violet `#6738EF`). Apply
   - OSI open source;
   - public domain / CC0;
   - Creative Commons with redistribution allowed.
-- **Every asset file must have a row in [`ATTRIBUTION.md`](ATTRIBUTION.md)** (path, author, source,
+- **Every asset file must have a row in [`ATTRIBUTION.md`](../../ATTRIBUTION.md)** (path, author, source,
   licence, notes). `cargo xtask assets` (part of `cargo xtask ci`) fails on any unlisted file under
   `assets/`, `docs/brand/` or `docs/images/`.
 - FigCraft's UI icons are drawn in code (`crates/ui-egui/src/icons.rs`) from simple primitives and
@@ -149,8 +149,8 @@ milestone id in the message (`M2.1: auto layout wrap`). Commit after every lande
   write manifests atomically, delete your target dir when done (disk is limited).
 
 ## Roadmap
-Product progress belongs in [Kodma’s roadmap](ROADMAP.md) and [design record](docs/kodma/README.md).
-For engine parity work, use the [component baseline](docs/engine-status.md), [assessment](docs/target-app-parity.md), [milestones](docs/roadmap.md) and generated [command checklist](docs/parity-checklist.md).
+Product progress belongs in [Kodma’s roadmap](../../ROADMAP.md) and [design record](../../docs/kodma/README.md).
+For engine parity work, use the [component baseline](../../docs/engine-status.md), [assessment](../../docs/target-app-parity.md), [milestones](../../docs/roadmap.md) and generated [command checklist](../../docs/parity-checklist.md).
 When a task lands, update the affected rows and the status line and revision history in the same
 commit. Grade by behaviour against the incumbent, not by whether a menu item exists; err low.
 

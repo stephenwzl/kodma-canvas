@@ -2,7 +2,7 @@
 
 更新日期：2026-11-17。本文约定保留 FigCraft 完整运行时、接入 macOS 原生宿主时的状态归属与回归场景。状态归属是逻辑职责，不要求拆分现有 FigApp / UiState。四页设计是交互输入，宿主适配、账户与 Agent 接入的实现状态见[产品进度](README.md)。
 
-[S002](../../spec/002-native-workspace/spec.md)最小闭环已验收关闭。当前优先 [S003](../../spec/003-drafts-files-ui/spec.md)：稿件创建、文件管理与整窗 UI，先用户视觉验收，再保障功能。Agent 暂缓，未来按云端 MCP 方向另立规格；本文已有本机 attached 路径仅保留为现有能力及回归说明，不作为下一阶段 Agent 产品路线。成员、分享、账户及完整协作职责也不纳入 S003。
+当前 **Web P1**，实施以 [S004](../../spec/004-web-cloudflare/spec.md)和 [Web / Cloudflare 架构](web-architecture.md)为准：首版登录、云端保存、跨设备，UI 优先。**macOS 暂停 P2，保留后续恢复**；S003 暂停，S001 / S002 已有结项不变。本文以下为既有原生工作区与 Agent 链路参考，不作为当前 Web 已实现的声明；Agent 暂缓，未来云端 MCP，本机 attached 路径仅为已有能力说明。
 
 ## 状态归属
 

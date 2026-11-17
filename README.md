@@ -1,17 +1,18 @@
 # Kodma
 
-Kodma 是一个以稿件为单位的 AI 画布工作区，优先面向 macOS。用户描述想做的界面或流程，在画布上查看结果，再用对话修改。设计支持两种入口：在稿件右侧使用内置 Agent，或让自己的 Agent 通过 MCP 加入同一稿件。
+Kodma 是一个以稿件为单位的 AI 画布工作区，当前优先交付 Web 版并部署到 Cloudflare；macOS 暂停、优先级 P2，保留后续恢复。用户描述想做的界面或流程，在画布上查看结果，再用对话修改。设计支持两种入口：在稿件右侧使用内置 Agent，或让自己的 Agent 通过 MCP 加入同一稿件。
 
 ## 当前进展
 
-已完成四页高保真原型、设计系统和架构图；S001 仅画布显示及 AppKit 同窗承载已由用户验收通过。下一阶段 [S002：macOS 原生工作区最小闭环](spec/002-native-workspace/spec.md)已建立规格，按原生首页、稿件标签、固定设计右栏的顺序接入完整 FigCraft 运行时，验收切稿、属性修改、撤销、保存重开和 MCP。S002 I1–I3 原生框架、首页文件与标签操作已完成本轮验收，下一步 I4 固定设计右栏；账户、云端名额与模型服务在后续阶段实施。
+已完成四页高保真设计、设计系统与架构记录；macOS 的 S001 / S002 已验收关闭，S003 暂停。当前 P1 为 [S004：Web 工作区与 Cloudflare 云端稿件](spec/004-web-cloudflare/spec.md)，首版包含登录、云端保存与跨设备打开。先还原浏览器 UI 并经用户视觉确认，再保障功能与测试；继续复用完整 FigCraft Rust/WASM 运行时。规格已建立，开发与 Cloudflare 部署尚未开始；Agent 暂缓，后续按云端 MCP 接入方向规划。
 
 | 想了解什么 | 从这里开始 |
 | --- | --- |
 | 产品决策、设计稿位置和交互进度 | [Kodma 产品与设计](docs/kodma/README.md) |
 | 下一阶段做什么、怎样验收 | [Kodma 路线图](ROADMAP.md) |
 | 一句话如何变成画布修改 | [工作区架构与 Agent 链路](docs/kodma/workspace-architecture.md) |
-| macOS 界面如何接入现有画布 | [画布显示与原生承载](docs/kodma/canvas-editor-extraction.md) |
+| Web 如何运行及部署到 Cloudflare | [Web 架构](docs/kodma/web-architecture.md) |
+| macOS 历史界面如何接入现有画布 | [画布显示与原生承载](docs/kodma/canvas-editor-extraction.md) |
 
 ## 运行画布基线
 

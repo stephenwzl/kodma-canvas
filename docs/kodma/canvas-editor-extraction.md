@@ -2,6 +2,8 @@
 
 更新日期：2026-11-17。状态：S001 与 S002 均已由用户验收通过并完成。保留完整 FigCraft 运行时的技术路线不变；承载基线见[S001 v2](../../spec/001-canvas-editor/spec.md)，原生工作区结项见[S002 v1.2](../../spec/002-native-workspace/spec.md)和[验收记录](../../spec/002-native-workspace/progress.md)。
 
+当前 macOS 开发暂停、优先级 P2，保留已有成果并计划后续恢复；本文件作为原生承载历史基线。当前 P1 为 [S004 Web / Cloudflare](../../spec/004-web-cloudflare/spec.md)，其承载、存储与部署以 [Web 架构](web-architecture.md)为准。
+
 ## 技术路线
 
 保留完整 FigCraft 运行时，通过隐藏外围 UI 和调整画布可用区域接入 Kodma。优先保持后续跟进 FigCraft 升级的兼容性，减少长期维护的本地差异。

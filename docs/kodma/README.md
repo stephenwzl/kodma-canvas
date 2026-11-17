@@ -10,6 +10,8 @@ S002 历史交付按用户要求优先还原整窗 UI：首页、导航、标签
 
 **当前优先 [S004：Web 工作区与 Cloudflare 云端稿件](../../spec/004-web-cloudflare/spec.md)，P1。** 用户确认首版包含登录、云端保存和跨设备打开；从浏览器 UI、存储、文件交互和 Cloudflare 部署重新定义范围。先设计核对与高保真实际运行视觉验收，再保障功能和测试；[Web 架构](web-architecture.md)、[case](../../spec/004-web-cloudflare/acceptance.md)与[进度](../../spec/004-web-cloudflare/progress.md)已建立，尚未开发 / 部署。保留完整 FigCraft Rust/WASM 运行时；Agent 暂缓，后续云端 MCP。
 
+S004 当前修订为 **v1.1**：参考 tldraw 的职责分层，每稿 DO + 附属 SQLite 保存文档，R2 只存图片等大资源，复用 FigCraft 增量协议；D1 保持用户 / 目录 / 名额角色。live [架构画板定位](web-architecture.md#live-架构图定位)与规格已同步；本轮只改图文，等待用户确认更新稿后才开始 I1、技术样机或代码，不创建资源、不部署。
+
 macOS 版及 [S003](../../spec/003-drafts-files-ui/spec.md)暂停，优先级 P2，保留后续恢复；S001 / S002 已有结项不变。下文 macOS 宿主和既有高保真交付均属已完成的历史基线，不代表 Web 产品已完成，也不继续作为当前开发主线。
 
 当前设计在 [FigCraft Cowork](https://figma.oldiron.work/) 的协作文件中维护（本次 live 核对名称为 `kodama`），文件 ID 为 `e37912c2dd7d1294`。使用已有授权打开该文件；仓库仅记录文件定位、设计规范和进度，不保存邀请 token、截图或设计文件副本。
@@ -33,6 +35,7 @@ macOS 版及 [S003](../../spec/003-drafts-files-ui/spec.md)暂停，优先级 P2
 
 | 日期 | 已完成 |
 | --- | --- |
+| 2026-11-17 | S004 v1.1 图文修订为 DO SQLite 文档状态、R2 大资源与 FigCraft 增量协议；补资源外置 / 可靠确认 / 恢复 case，待用户确认后才开发。 |
 | 2026-11-17 | 调整为 Web P1、Cloudflare 部署，建立 S004；用户明确首版登录 / 云端保存 / 跨设备。macOS / S003 暂停 P2、保留恢复；UI 优先，Agent 暂缓。仅规格，开发与部署未开始。 |
 | 2026-11-17 | 建立 S003 v1 规格、实施顺序和亲验 case；优先基础稿件管理与 UI，保留完整运行时；Agent 暂缓，后续云端 MCP。仅文档，开发 / 运行验收未开始。 |
 | 2026-11-17 | 用户确认 S002 v1.2 验收通过并关闭，I1–I5 及范围内验收项结项；保留当前 UI、完整运行时及既有工程证据与限制。 |

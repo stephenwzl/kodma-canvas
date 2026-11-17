@@ -6,7 +6,7 @@
 
 | 优先级 | 方向 | 状态与范围 |
 | --- | --- | --- |
-| P1 | Web / Cloudflare | [S004 v1](spec/004-web-cloudflare/spec.md)规格已建立，尚未开发 / 部署；先完成浏览器高保真 UI 并经用户确认，再保障登录、稿件管理、云端保存、跨设备与测试。见[架构](docs/kodma/web-architecture.md)、[case](spec/004-web-cloudflare/acceptance.md)、[进度](spec/004-web-cloudflare/progress.md) |
+| P1 | Web / Cloudflare | [S004 v1.1](spec/004-web-cloudflare/spec.md)图文已更新，待用户确认后才开始 I1；尚未开发 / 部署；先完成浏览器高保真 UI 并经用户确认，再保障登录、稿件管理、云端保存、跨设备与测试。见[架构](docs/kodma/web-architecture.md)、[case](spec/004-web-cloudflare/acceptance.md)、[进度](spec/004-web-cloudflare/progress.md) |
 | P2 | macOS | 暂停，保留代码、设计与成果，后续恢复；[S003](spec/003-drafts-files-ui/spec.md)暂停且开发未开始。已通过的 S001 / S002 结项不变，不在 Web 阶段继续原生界面迭代 |
 | 后续 | Agent / 云端 MCP | 暂缓，待基础产品闭环完成后另立规格；不优先开发本地 Agent 产品入口 |
 
@@ -15,7 +15,7 @@
 | 阶段 | 状态 | 交付与验收 |
 | --- | --- | --- |
 | 产品与工作区设计 | 已记录，Web 状态待补 | 既有高保真与 Design System 可复用；Web 登录、文件管理、冲突与离线状态按 S004 I1 核对 / 补充，不宣称完整设计已齐备 |
-| Web 与 Cloudflare 架构 | S004 实施方案 | 浏览器完整 Rust/WASM 引擎 + DOM 产品外壳；Workers Static Assets / Worker API / D1 / 私有 R2。已有参考 Web 不等于 Kodma Web 产品，架构未实现 / 部署 |
+| Web 与 Cloudflare 架构 | S004 实施方案 | 浏览器完整 Rust/WASM 引擎 + DOM 产品外壳；Workers Static Assets / Worker / 每稿 DO + SQLite 文档状态 / D1 元信息 / 私有 R2 大资源，复用 FigCraft 增量协议。已有参考 Web 不等于 Kodma Web 产品，架构未实现 / 部署 |
 | Web 高保真与云端稿件 | P1，规格已建立 | 先 UI，再功能保障；真实登录、云端创建 / 保存 / 列表、跨设备、用户隔离及浏览器本地稿。仅静态托管或下载文件不算完成 |
 | macOS 仅画布与原生承载 | S001 v2 已完成 | 用户验收通过；保留完整运行时的隐藏 / 区域适配路线，跨物理显示比例测试已取消 |
 | macOS 工作区最小闭环 | S002 v1.2 已完成 | 用户验收通过并关闭，实现版本 eedd960a；历史工程检查和限制保留，不作为 Web 验收证据 |
@@ -27,6 +27,7 @@ FigCraft 已有命令、撤销、编辑工具、渲染、格式、协作和 MCP 
 
 | 日期 | 记录 |
 | --- | --- |
+| 2026-11-17 | S004 v1.1 改为每稿 DO + SQLite 文档持久化，R2 仅图片等大资源，保留 FigCraft 增量协议；架构图、case 与文档同步。用户确认更新稿前不开始开发。 |
 | 2026-11-17 | 用户调整为 Web P1、Cloudflare 部署；首版含登录、云端保存、跨设备打开。建立独立 S004；macOS / S003 暂停 P2，保留恢复，S001 / S002 结项不变；UI 优先、Agent 暂缓。 |
 | 2026-11-17 | 建立 S003 v1：先完善稿件创建、文件管理与整窗 UI，UI 优先，保留完整运行时；Agent 暂缓，后续按云端 MCP 方向规划。规格已建立，开发与验收未开始。 |
 | 2026-11-17 | 用户确认 S002 v1.2 验收通过并关闭；I1–I5 结项，保留当前 UI、完整 FigCraft 运行时及已记录的工程检查边界。 |

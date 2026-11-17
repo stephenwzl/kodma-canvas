@@ -4,7 +4,7 @@ Kodma 是一个以稿件为单位的 AI 画布工作区，当前优先交付 Web
 
 ## 当前进展
 
-已完成四页高保真设计、设计系统与架构记录；macOS 的 S001 / S002 已验收关闭，S003 暂停。当前 P1 为 [S004：Web 工作区与 Cloudflare 云端稿件](spec/004-web-cloudflare/spec.md)，首版包含登录、云端保存与跨设备打开。先还原浏览器 UI 并经用户视觉确认，再保障功能与测试；继续复用完整 FigCraft Rust/WASM 运行时。规格已建立，开发与 Cloudflare 部署尚未开始；Agent 暂缓，后续按云端 MCP 接入方向规划。
+已完成四页高保真设计、设计系统与架构记录；macOS 的 S001 / S002 已验收关闭，S003 暂停。当前 P1 为 [S004：Web 工作区与 Cloudflare 云端稿件](spec/004-web-cloudflare/spec.md)，首版包含登录、云端保存与跨设备打开。先还原浏览器 UI 并经用户视觉确认，再保障功能与测试；继续复用完整 FigCraft Rust/WASM 运行时。当前 S004 v1.1 采用每稿 DO + SQLite 保存文档、R2 仅存大资源并复用 FigCraft 增量协议；架构图与规格待用户确认后才开发，尚未创建资源或部署；Agent 暂缓，后续按云端 MCP 接入方向规划。
 
 | 想了解什么 | 从这里开始 |
 | --- | --- |

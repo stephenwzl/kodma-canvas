@@ -1,57 +1,96 @@
 # Kodma Web 与 Cloudflare 架构
 
-更新日期：2026-11-17。状态：**S004 v1 实施方案，尚未实现 / 部署**。Web P1；macOS 暂停 P2、保留后续恢复。范围与顺序以 [S004](../../spec/004-web-cloudflare/spec.md)为准；macOS 历史承载方案见[原生承载](canvas-editor-extraction.md)。
+更新日期：2026-11-17。对应 **S004 v1.1**。状态：**架构图与规格更新，等待用户确认后才开始开发**。Web P1；macOS / S003 暂停 P2，保留恢复；Agent 暂缓。范围以 [S004](../../spec/004-web-cloudflare/spec.md)为准。
 
-## 已有能力与新增工作
+## 当前选择与参考边界
 
-| 已核对的源码 | 当前事实 | Web 产品还需补齐 |
+用户选择参考 tldraw 的职责分层：**每份稿件由一个 Durable Object 协调，文档状态持久化在其附属 SQLite；R2 只存图片等大资源；浏览器与服务端继续复用 FigCraft 增量同步协议。** tldraw 官方方案将同步房间状态保存在 DO SQLite，将图片 / 视频放在 R2；本项目仅参考公开架构，不引入或复制其编辑器、同步协议、代码或资产。[官方参考](https://tldraw.dev/docs/sync)
+
+旧 v1 的“D1 当前版本指针 + R2 整份 .figcraft 快照”方案已被替代，普通服务器 / 原生服务的候选部署也不再是当前选择。旧架构画板保存在 live 稿件的历史页；不将旧方案内容混入 v1.1 的当前职责表。
+
+**本次授权只包括改图和改文档。用户确认更新稿前，不开始 I1 实现、技术样机、依赖引入、Cloudflare 资源创建或部署。** 确认后仍按 UI 优先顺序实施。
+
+## live 架构图定位
+
+文件 ID：`e37912c2dd7d1294`，在 [FigCraft Cowork](https://figma.oldiron.work/) 中使用已有授权打开；不在仓库保存邀请凭据、截图或设计文件副本。
+
+当前页面 **Kodma · Web 架构 v1.1 · 待确认**（`176093659137`）：
+
+| 画板 | 节点 ID | 内容 |
 | --- | --- | --- |
-| [Web 入口](../../apps/figcraft-web/src/web.rs)、[Trunk 配置](../../apps/figcraft-web/Trunk.toml) | 已有 eframe WebRunner、WASM、WebGPU / WebGL2 路径和浏览器文件服务 | Kodma 产品外壳、正确画布区域、字体与实际浏览器验收 |
-| [host bridge](../../apps/figcraft-web/src/host.rs) | 支持同页 `data-host="page"` 和同源 iframe；文件 / dirty 事件桥接 | 采用同页模式；补显式稿件身份、保存请求 / revision 与持久化确认，不能按文件名串联多稿 |
-| [页内 API](../../apps/figcraft-web/src/api.rs)、[工作区快照](../../crates/ui-egui/src/workspace.rs) | opt-in 页内请求进入原控制队列，有命令 / 观察能力 | 产品级适配与生命周期；同一运行时，明确目标，不把调试 API 当云端鉴权 |
-| [saved_files](../../apps/figcraft-web/src/saved_files.rs) | 按文件名保存最多 16 份内存捕获结果 | 不是持久稿件仓库；需本地 IndexedDB 和云端稿件存储 |
-| [CanvasHost](../../crates/ui-egui/src/lib.rs)、[UI 帧](../../crates/ui-egui/src/app.rs) | 已有保留运行时的外围隐藏 / 区域策略 | Web 特定入口、DOM 焦点与坐标适配，不复用 AppKit 视图 |
-| [原生服务器](../server.md) | `figcraft-server` 是 native-only 常驻服务，已有共享链接 / 协议 | 不能原样部署 Workers；S004 单独实现身份与快照 API，不先移植完整实时服务器 |
-| [打包脚本](../../packaging/web/package.sh) | 可构建静态 Web 包并按未压缩 WASM 文件检查上限，当前默认 25 MiB | 产品独立输出、实测尺寸、Cloudflare 路由 / 缓存 / 环境与发布回读 |
+| 01 · Cloudflare DO SQLite 部署拓扑 | `176093659391` | 浏览器、Worker、每稿 DO / SQLite、D1 元信息与 R2 大资源 |
+| 02 · FigCraft 增量提交与跨设备恢复 | `176093659449` | 持久化确认、补差、微观开销及尚未测量项 |
+| 03 · R2 大资源与完整稿件边界 | `176093659497` | 先上传资源后提交引用、资源适配、导入 / 下载与清理 |
+| 04 · 可靠保存、环境隔离与确认门槛 | `176093659527` | 恢复、故障验收、分环境与用户确认门槛 |
 
-以上是静态源码事实，不代表新宿主、存储、登录或 Cloudflare 已验证。打包说明中的旧体积 / 功能描述不代替当前产物测量。
+旧五张草案位于 **Kodma · Web 架构历史 v1 · 已替代**（`176093659390`）。历史微观图的 32 B 是合成 CLI 样本的 changes 编码，45,318 B 是完整文件大小；不包含协议 / TLS / ACK，不是 DO 性能或费用测量。
 
-## 部署与状态归属
+## 已有基础与适配缺口
 
-浏览器运行 DOM 外壳与完整 Rust/WASM 编辑器；同一 Session 内原命令修改文档。外壳管理路由、登录状态、列表、字段草稿与保存请求，不另起可编辑 JSON 文档模型。序列化快照由运行时提供，浏览器与服务端只保存快照 / 元信息。
+| 源码 / 定义 | 当前事实 | v1.1 适配范围 |
+| --- | --- | --- |
+| [Web 入口](../../apps/figcraft-web/src/web.rs)、[Trunk](../../apps/figcraft-web/Trunk.toml) | 完整 eframe WebRunner / WASM，已有浏览器渲染与文件服务 | DOM 产品外壳、字体 / 视口 / 输入及实际浏览器验收 |
+| [host bridge](../../apps/figcraft-web/src/host.rs)、[页内 API](../../apps/figcraft-web/src/api.rs) | 同页承载、事件 / 命令队列接口 | 保持同一运行时，明确稿件身份、编辑代次、资源与保存确认 |
+| [增量 diff](../../crates/collab/src/diff.rs)、[客户端](../../crates/collab/src/client.rs)、[消息](../../crates/collab/src/message.rs) | 属性级变化、批次身份与序号、重连 / 重放基础 | 复用其语义，不切换为 tldraw sync / Yjs，不新造整稿覆盖协议 |
+| [服务端核心](../../crates/collab/src/server.rs)、[持久化钩子](../../crates/collab-net/src/hub/backend.rs) | 同步校验 / 排序与“持久化后发答复”的原生扩展点 | DO transport / storage / 生命周期适配，Rust 核心进入平台执行环境的方式待验证 |
+| [图片变更](../../crates/collab/src/change.rs)、[资源序列化](../../crates/collab/src/docprops.rs) | 现有图片项携带尺寸和字节，并校验内容 hash | Web 外置资源表示、引用验证、恢复加载与标准文件交换，不能直接用 URL 冒充旧字段 |
+| [内存捕获](../../apps/figcraft-web/src/saved_files.rs) | 最多 16 份、按名字保留的临时内存内容 | 不是本地稿件目录；使用 IndexedDB 持久身份与待确认增量 |
+| [原生服务器说明](../server.md) | native-only 常驻服务；文件系统日志 / 快照恢复 | 不直接在 Worker 运行原生服务器；保留其逻辑作为复用与对照基础 |
 
-首版部署选择 **Cloudflare Workers Static Assets + Worker API + D1 + 私有 R2**。官方支持静态文件与 Worker API 同部署，D1 / R2 通过服务端 binding 使用；这为本方案提供平台基础，不能代替应用验证。[静态托管](https://developers.cloudflare.com/workers/static-assets/)、[D1 binding](https://developers.cloudflare.com/d1/worker-api/d1-database/)、[R2 binding](https://developers.cloudflare.com/r2/api/workers/workers-api-usage/)
+以上是源码观察，不等于 DO、资源外置、登录或产品工作区已运行验证。尤其不能把原生 sync_data 的实现或原生测试结果写成 Cloudflare 持久化已经通过。
 
-- 静态资源：HTML / CSS、WASM glue / `.wasm`、合法素材；页面无服务端渲染硬依赖，真实编辑在浏览器执行。
-- Worker：登录回调与会话、同源 `/api/*`、输入限额、用户 / 稿件鉴权、云名额、保存幂等与 revision 校验。
-- D1：内部用户 / provider 身份映射、会话（如自持会话）、稿件 ID、owner、名称、当前 revision / 对象引用、删除状态和幂等记录。具体 schema / 索引 / 迁移由 I1 给出；UI 列表读目录，不把完整文件塞进列表接口。
-- R2：私有不可变稿件版本，以不可变对象键保存 `.figcraft` 内容；首版可将图片等保留在原生文件内，不另扩素材管理系统。对象读取经过 Worker 所有权检查，不公开 bucket。
-- IndexedDB：匿名 / 超名额本地稿、已登录用户独立命名空间的离线检查点及待提交状态；不按名字覆盖，不跨账户暴露。
+## 部署拓扑与状态归属
 
-持久 ID 与 URL 不包含凭据；编辑器 UID 只在当前运行时有效。`/drafts/:id` 必须重新验证访问资格并加载已保存版本，不能靠猜到 ID 获得访问。首版不实现实时多写合并；未来云端 MCP 与协作必须复用稿件 ID、鉴权和版本协议，不能直接绕过当前 revision 更新 R2 文件。
+| 位置 | 职责 | 权威与边界 |
+| --- | --- | --- |
+| Workers Static Assets | HTML / CSS / WASM glue / .wasm 与合法字体 / 素材 | 静态资源分发；编辑在浏览器执行 |
+| 浏览器 DOM + 完整 FigCraft | 产品 UI、Session / FigApp / UiState、原编辑命令 / 撤销 / 渲染、增量客户端 | 不建第二份可编辑模型；未确认修改保留本地 |
+| IndexedDB | 本地稿、账户隔离的待提交增量与低频检查点 | 不承诺本地稿跨设备可见，不为每次微调无条件序列化整稿 |
+| Worker 入口 | 登录 / 会话、用户与稿件授权、目录 / 名额、资源 API、路由文档连接 | /auth、/api、/sync、/assets 的应用路由与静态资源路由分开；最终路径 I1 固定 |
+| 文档 DO | 稳定稿件 ID 在对应环境映射唯一逻辑协调者；复用 FigCraft 同步核心 | 不按用户名 / 稿名寻址，不接受浏览器任意指定内部 DO 身份 |
+| DO 附属 SQLite | 版本化检查点、有序增量日志、序号、去重、资源引用及生命周期 | 文档持久状态唯一真相；内存仅运行缓存；不重复嵌入大图片字节 |
+| D1 | 用户、身份映射、目录 / 所有权索引、名额与必要生命周期投影 | 不保留另一份编辑模型；文档 seq 以 DO 为准，位置微调不要求每次更新目录 |
+| 私有 R2 | 图片等大资源，按内容标识存储并授权读取 | 不存日常整稿、文档日志或文档检查点；不公开 bucket，不下发主密钥 |
 
-## 云端保存提交边界
+登录 provider 尚未选定；确认后 I1 核对现有基础设施，落定真实登录方式与回调、会话过期 / 撤销。授权绑定内部 user ID、稿件 ID、访问级别和生命周期代次；不能把调试 API、显示名称或客户端 owner 字段当权限。DO 对接入和变更继续做实际校验，不能只在 UI 禁用按钮。
 
-1. 浏览器从原运行时获得目标稿件的序列化快照，捕获持久 ID、UID、编辑代次、预期服务器 revision、内容摘要和幂等请求 ID；先完成所需本地检查点，再发起云端保存。
-2. Worker 验证会话 / owner / 删除状态、允许大小和请求形状。幂等重试先核对此前提交；不信任前端 owner 或用户提供的任意对象键。
-3. 将完整内容写入新的不可变 R2 对象。对象键不能只有客户端基准 revision，否则并发写会覆盖；每次候选保存独立。写失败不修改目录指针。
-4. 在 D1 内用预期 revision 条件更新稿件指针及幂等记录；创建 / 恢复还需原子校验名额。并发只有一个请求可推进相同基准版本；失败返回冲突或明确错误。
-5. 仅指针提交成功才返回新 revision / 摘要，客户端仅确认对应序列化版本；之后的新修改继续保持待保存。R2 已写但 D1 未提交会留下无引用对象，后续安全回收；旧有效快照不提前删除。
-6. 重连或响应丢失时以请求 ID / 服务器状态确认，不盲目重复创建。读取通过 D1 当前已提交指针获取完整 R2 对象；指针不存在 / 对象不可读时返回明确错误，不退成空稿。
+D1 和 DO 之间的创建 / 删除 / 恢复也不是一个全局事务。I1 需定义可重试的状态机：先预留名额、初始化文档 DO，成功后发布目录；失败可重试或补偿，不产生可打开的幽灵稿。删除先阻止对应 DO 接受旧会话写入，再协调目录和名额；重试不能重新创建同 ID 的另一个稿件。跨存储关系要有可验证的对账 / 修复流程。
 
-**D1 与 R2 没有本方案可依赖的跨服务原子事务。** R2 对象操作的一致性不意味着上述两个服务可原子提交；因此必须通过不可变内容 + 条件指针推进 + 幂等记录处理失败。[R2 一致性说明](https://developers.cloudflare.com/r2/reference/consistency/)
+## 普通微调：持久化后再确认
 
-I1 给出实际 API 请求 / 响应、revision 作用范围、事务 SQL、幂等记录生命周期、本地检查点频率、上传上限、故障补偿与安全清理时序；I3 / I4 用失败与并发 case 验证。不得以这一文字方案声称已经具备原子保存或零丢失保证。
+1. 浏览器在原运行时提交命令，形成 FigCraft 属性级变更，保留原 client / batch / base sequence 身份与本地待确认记录。一次拖动可能形成多批次，不能把一次撤销等同于一个网络包。
+2. 已鉴权连接将增量送到对应文档 DO；DO 使用原同步核心校验、排序、应用与生成序号。不要并行另造 expected-revision 全稿 CAS 算法；原协议可重放的旧基准不应一律当作错误。
+3. 在同一 SQLite 事务边界保存增量、序号、去重结果及相关资源引用 / 生命周期变更。原核心的内存状态只在提交成功后对外确认；失败应回滚 / 重载，禁止内存走在持久状态前却继续报已保存。
+4. 满足平台持久化 / 输出门语义后才发对应 ACK 与广播。SQL 同步调用返回不等于可以忽略持久化边界；不得使用提前输出或未确认写入绕过保护。[平台事务与输出门](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/)
+5. 浏览器只清除已确认批次；之后的新修改仍待保存。响应丢失时按 batch / sequence 重连确认，不能重复应用；不可恢复的编辑保留副本并反馈，不退成整稿最后写入覆盖。
+6. 另一设备连接同一 DO，恢复检查点加后续日志或按原协议补差。每个新检查点带对应 seq，可靠提交后才能清理其覆盖的旧日志，避免无限重放与单行 / 单消息超限。
 
-## 身份、缓存与运行环境
+SQLite schema、编码版本、日志保留、检查点分块 / 大小、批次合并和平台 CPU / 内存限制在确认后 I1 细化。该模型参考原生 Journal / SessionState，不要求照搬其文件布局，也不把每批增量改成一份完整 BLOB。
 
-真实登录 provider 尚未选定，I1 核对现有基础设施后落定最小登录方式；不自行假设本仓库已经有账户系统。会话使用服务端验证的安全方案，覆盖 callback state / 重放、过期 / 撤销、CSRF / 同源写入检查和退出后的本地隐私边界。provider 主体映射内部稳定 user ID，名称 / 邮箱展示值不是授权依据。
+## 图片：先资源，后引用
 
-Cloudflare / provider 密钥放服务端 Secrets / bindings，不能注入浏览器 bundle、页面配置或日志。[官方 Secrets](https://developers.cloudflare.com/workers/configuration/secrets/)
+1. 浏览器经受控资源接口上传图片等内容到 R2。服务端验证账户、允许格式、大小、尺寸与 hash，取得不可变资源标识；去重不泄露另一账户是否拥有同内容。
+2. 资源写入并校验成功后才提交文档引用。DO 验证存在性与授权，事务持久化引用及对应增量；资源未就绪不能确认完整稿件已保存。
+3. Web 传输 / 存储适配层需有版本的外置资源表示：SQLite 检查点和日志不内嵌大资源字节；向原核心恢复 / 重放时补足其需要的资源。具体编解码、按需加载与内存约束 I1 验证，不能假设 wire 已接受任意 R2 URL。
+4. R2 成功、文档失败的上传暂为孤立候选，允许幂等重试；安全延迟回收。持久引用、待提交上传、历史版本、软删除与恢复窗口都参与保留规则，不能只扫描当前可见画布就删资源。
+5. 导入拆出大资源并校验；下载时取得完整文档状态和所有必需资源，组装标准 .figcraft。缺资源不导出假成功文件。普通位置微调不写 R2，新增 / 替换资源才产生相应资源上传。
 
-- HTML 重新验证，内容哈希资源可长缓存；会话和私有稿件响应禁止公开共享缓存。
-- 明确 `/api/*`、`/auth/*` 和缺失资源的处理，页面路由才回 SPA；浏览器直达 / 回调验证不能只测首页。[官方 SPA 路由](https://developers.cloudflare.com/workers/static-assets/routing/single-page-application/)
-- Workers Static Assets 当前单文件 25 MiB，上限针对原文件；浏览器 WASM 与 Worker 可执行包的限制不同，分别验证。不要引用旧 Web 打包文档的约数作为本轮证据。[官方限制](https://developers.cloudflare.com/workers/platform/limits/)
-- 本地 / 测试 / 生产使用不同数据资源、会话配置和回调地址；记录构建 SHA、资源 hash、Worker 版本与迁移版本。生产发布与资源付费需按授权执行；本次只写方案，不创建资源、不部署。
+DO SQLite、D1、R2 之间不假设跨服务原子事务。资源保留与文档 PITR 必须协调，恢复文档到旧 seq 时，对应旧资源仍应存在且可授权读取。
 
-实时协作与云端 MCP 暂缓；未来可评估 Durable Objects 的会话协调，但先做登录、云稿与跨设备保存闭环，不将 DO 当作首版必需依赖。
+## 生命周期、灾难恢复与隔离
+
+DO 可被驱逐，不能依赖内存常驻。[平台生命周期](https://developers.cloudflare.com/durable-objects/reference/in-memory-state/)
+
+- 在启动 / 休眠唤醒 / 连接恢复时从 SQLite 重建状态与必要会话。WebSocket Hibernation、连接附件、权限过期和 schema 升级行为需真实测试，不把原生线程或本地 fd 模型搬入 DO。
+- 采用 SQLite 后端的有界 PITR、软删除与历史保留规划恢复。单 DO 的时间点恢复不等于 D1 与 R2 同时回滚；恢复步骤需校对目录、身份 / 删除代次和资源清单。[平台恢复 API](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/)
+- 平台持久化、复制与 PITR 不等于无限历史或应用级零丢失保证。I1 定义保留期、可恢复范围、报警与恢复入口，I5 以存储失败 / ACK 丢失 / 休眠 / 旧日志重放 / 缺图片等案例验证。
+- 本地、测试、生产分开 DO 命名空间、D1、R2、secret 与回调。记录构建 SHA、协议 / 数据 schema、迁移与资源引用兼容策略；应用回滚不能自动视为数据库回滚。
+- R2 严格保持大资源角色。文档独立备份 / 导出若超出平台 PITR 范围，另定目标与授权，不自行把整稿备份重新塞入 R2。
+
+## Web 交付与限制
+
+继续保留默认参考 Web 与原生构建。静态 .wasm 单文件限制、字体、MIME、HTTPS、哈希缓存与路由要求沿用 S004；I1 对当前工具链与实测产物确认，不依赖旧体积记录。[Static Assets](https://developers.cloudflare.com/workers/static-assets/)、[Workers 限制](https://developers.cloudflare.com/workers/platform/limits/)
+
+私有稿件、会话、资源接口不得进入公开共享缓存；未找到的 API / JS / WASM 不回 HTML 伪成功。环境绑定和密钥不入浏览器产物或仓库。[Secrets](https://developers.cloudflare.com/workers/configuration/secrets/)
+
+本次无代码 / 依赖 / 资源变更，仅形成待确认图文。未来 Agent / 云端 MCP 复用该稿件身份与授权、增量提交路径，不绕过 DO 直接覆盖 R2 对象。

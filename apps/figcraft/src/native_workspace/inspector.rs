@@ -310,13 +310,13 @@ fn caption_rect(x: f64, y: f64) -> objc2_foundation::NSRect {
 /// Poll only the original AppKit key event; never synthesize canvas input. A native IME owns
 /// Return/Tab/Escape while marked text is active. The paired key-up cannot confirm it later.
 #[derive(Default)]
-struct KeyGate {
+pub(super) struct KeyGate {
     seen: Option<u64>,
     marked: bool,
     key_up: Option<u16>,
 }
 impl KeyGate {
-    fn observe(&mut self, event: Option<(u64, u16, bool)>, marked: bool) -> Option<u16> {
+    pub(super) fn observe(&mut self, event: Option<(u64, u16, bool)>, marked: bool) -> Option<u16> {
         let composing = self.marked || marked;
         self.marked = marked;
         let (serial, key, down) = event?;

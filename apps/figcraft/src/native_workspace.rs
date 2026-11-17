@@ -12,6 +12,7 @@ use objc2_foundation::{NSPoint, NSRect, NSSize, NSString};
 use figcraft_ui_egui::CanvasHost;
 use figcraft_ui_egui::workspace::Snapshot;
 
+mod draft_dialog;
 mod edit_menu;
 mod hero;
 mod home;
@@ -77,7 +78,7 @@ impl Host {
         add_labels(&right, &[&design])?;
         let properties = inspector::Properties::install(mtm, &right, &window, &canvas)?;
         add_labels(&home, &[&greeting, &headline])?;
-        let controls = home::Controls::install(mtm, &left, &top, &home)?;
+        let controls = home::Controls::install(mtm, &left, &top, &home, &window, &canvas)?;
         let tabs = tabs::Tabs::install(mtm, &top, alert)?;
         // Add as siblings of the original rendering view's contents, never its replacement.
         for view in [&*left, &*top, &*right, &*home] {
@@ -117,7 +118,7 @@ impl Host {
     }
 
     pub fn editing_properties(&self) -> bool {
-        self.properties.editing()
+        self.properties.editing() || self.controls.editing()
     }
 
     pub fn take_actions(
@@ -125,6 +126,9 @@ impl Host {
         ctx: &egui::Context,
         inspector: &figcraft_ui_egui::workspace_properties::Inspector,
     ) -> Vec<figcraft_ui_egui::workspace::Action> {
+        if self.controls.modal() {
+            return self.controls.take_actions();
+        }
         let mut actions = self.edit_menu.as_mut().map(|m| m.actions(ctx)).unwrap_or_default();
         actions.extend(self.toolbar.actions());
         actions.extend(self.tabs.take_actions());
@@ -177,8 +181,11 @@ impl Host {
             self.drafts.setFrame(rect(36.0, h - 160.0, 180.0, 24.0));
             self.drafts.setHidden(true);
             self.design.setFrame(rect(40.0, h - TOP - 58.0, 65.0, 30.0));
-            self.greeting.setFrame(rect(78.0, h - 314.0, 500.0, 100.0));
-            self.headline.setFrame(rect(78.0, h - 399.0, 650.0, 90.0));
+            let hero_scale = ((w - LEFT - 120.) / 1040.).clamp(0.55, 1.);
+            self.greeting.setFont(Some(&NSFont::systemFontOfSize(58. * hero_scale)));
+            self.headline.setFont(Some(&NSFont::systemFontOfSize(58. * hero_scale)));
+            self.greeting.setFrame(rect(60., (h - TOP) * 0.5 + 15., 560. * hero_scale, 84.));
+            self.headline.setFrame(rect(60., (h - TOP) * 0.5 - 75., 560. * hero_scale, 90.));
         }
         self.controls.sync(
             recents,

@@ -74,13 +74,15 @@ impl Navigation {
         self.layers_title.setHidden(s.home);
         self.add_page.view.setHidden(s.home);
         self.add_page.enabled(!s.busy);
-        self.account.view.setHidden(s.home);
+        self.account.view.setHidden(true);
+        self.agent.view.setHidden(true);
+        self.share.view.setHidden(true);
         self.page_title.setFrame(rect(36., h - 142., 140., 26.));
         self.add_page.frame(185., h - 148., 36., 36.);
         self.layers_title.setFrame(rect(36., h - divider - 48., 150., 26.));
         self.account.frame(26., 32., 160., 44.);
         for (index, rule) in self.rules.iter().enumerate() {
-            rule.setHidden(s.home);
+            rule.setHidden(s.home || index == 1);
             rule.setFrame(rect(26., if index == 0 { h - divider } else { 104. }, 190., 1.));
         }
         let body = h - 84.;

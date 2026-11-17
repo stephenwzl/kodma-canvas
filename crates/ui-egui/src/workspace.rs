@@ -43,6 +43,9 @@ pub enum Action {
     Open,
     Home,
     Recent(String),
+    RenameRecent(String, String),
+    SaveAsRecent(String),
+    RemoveRecent(String),
     Switch(u64),
     Close(u64),
     Save(u64),
@@ -68,7 +71,9 @@ impl FigApp {
             .take(figcraft_engine::cmd::file::MAX_RECENT)
             .map(|path| RecentFile {
                 path: path.clone(),
-                name: std::path::Path::new(path).file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone()),
+                name: self.session.docs.iter().find(|d| d.path.as_deref() == Some(path.as_str())).map(|d| d.doc.name.clone()).unwrap_or_else(|| {
+                    std::path::Path::new(path).file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone())
+                }),
             })
             .collect()
     }
@@ -155,6 +160,29 @@ impl FigApp {
             Action::Open => self.open_dialog(),
             Action::Home => {
                 self.run("doc.home", serde_json::json!({}));
+            }
+            Action::RemoveRecent(path) => {
+                if self.workspace_recents().iter().any(|f| f.path == path) {
+                    self.run("file.openRecent", serde_json::json!({"remove":path}));
+                }
+            }
+            Action::RenameRecent(path, name) => {
+                let name = name.trim();
+                if !name.is_empty()
+                    && self.workspace_recents().iter().any(|f| f.path == path)
+                    && self.run_user("file.openRecent", serde_json::json!({"path":path})).is_some()
+                    && self.run_user("file.rename", serde_json::json!({"name":name})).is_some()
+                {
+                    self.run_user("file.save", serde_json::json!({}));
+                }
+            }
+            Action::SaveAsRecent(path) => {
+                if self.workspace_recents().iter().any(|f| f.path == path)
+                    && self.run_user("file.openRecent", serde_json::json!({"path":path})).is_some()
+                {
+                    self.ui.home = false;
+                    self.save_as_dialog();
+                }
             }
             Action::Recent(path) => {
                 // Capture a path, not an index: recency order can change between click and tick.
@@ -328,6 +356,27 @@ mod tests {
         ui.app.workspace_action(super::Action::Recent(path));
         assert_eq!(ui.app.workspace_snapshot(), before);
         assert!(ui.app.ui.last_error.is_none());
+    }
+
+    #[test]
+    fn recent_menu_renames_its_path_and_removal_keeps_open_document_and_disk() {
+        let (dir, path) = fixture("menu-target");
+        let mut ui = Ui::new(Session::new());
+        ui.app.run("file.open", json!({"path":path}));
+        let original = ui.app.session.ds().unwrap().uid;
+        ui.app.run("file.new", json!({"name":"Other"}));
+        let other = ui.app.session.ds().unwrap().uid;
+        ui.app.workspace_action(super::Action::RenameRecent(path.clone(), "新名称".into()));
+        assert_eq!(ui.app.session.ds().unwrap().uid, original);
+        assert_eq!(ui.app.workspace_recents()[0].name, "新名称");
+        assert_eq!(ui.app.session.docs.iter().find(|d| d.uid == other).unwrap().doc.name, "Other");
+        ui.app.workspace_action(super::Action::RemoveRecent(path.clone()));
+        assert!(std::path::Path::new(&path).exists());
+        assert!(ui.app.workspace_recents().is_empty());
+        let before = ui.app.workspace_snapshot();
+        ui.app.workspace_action(super::Action::RenameRecent(path, "Stale".into()));
+        assert_eq!(ui.app.workspace_snapshot(), before);
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     struct Picker(Option<std::path::PathBuf>);

@@ -5,6 +5,7 @@ TASK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TASK_MODE=run
 TASK_PRESENTATION=--native-canvas
 TASK_BUILD=1
+TASK_UI_STATE=
 TASK_ARGS=()
 while (($#)); do
     case "$1" in
@@ -12,6 +13,7 @@ while (($#)); do
         --workspace) TASK_PRESENTATION=--native-workspace ;;
         --reference) TASK_PRESENTATION= ;;
         --canvas-only) TASK_PRESENTATION=--canvas-only ;;
+        --ui-state=trash|--ui-state=save-error) TASK_UI_STATE="${1#--ui-state=}" ;;
         --no-build) TASK_BUILD=0 ;;
         *) TASK_ARGS+=("$1") ;;
     esac
@@ -68,7 +70,7 @@ else
     # LaunchServices can briefly retain the old job after its process exits.
     for TASK_ATTEMPT in {1..3}; do
         if /usr/bin/open -n "$TASK_ROOT/dist/KodmaCanvas.app" \
-            --env "FIGCRAFT_CONFIG_DIR=$TASK_CONFIG" --env RUST_LOG=info \
+            --env "FIGCRAFT_CONFIG_DIR=$TASK_CONFIG" --env RUST_LOG=info --env "KODMA_S003_UI_STATE=$TASK_UI_STATE" \
             --stdout "$TASK_ROOT/dist/canvas-stdout.log" --stderr "$TASK_ROOT/dist/canvas-stderr.log" \
             --args "${TASK_ARGS[@]}"; then
             TASK_OPENED=1

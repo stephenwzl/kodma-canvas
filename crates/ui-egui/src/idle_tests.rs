@@ -577,3 +577,38 @@ fn a_rename_started_while_minimized_waits_for_the_layers_panel_quietly() {
     }
     assert!(h.app.ui.rename.is_some_and(|r| !r.start), "the field opened once the interface expanded");
 }
+
+#[test]
+fn managed_drafts_auto_save_without_enabling_external_auto_save() {
+    let dir = std::env::temp_dir().join(format!("kodma-managed-auto-save-{}", std::process::id()));
+    let mut session = Session::empty();
+    session.drafts = Some(figcraft_engine::cmd::draft::Store::load(dir.clone()));
+    session.execute("draft.create", &json!({"id":"33333333333333333333333333333333","name":"自动保存测试"})).unwrap();
+    let path = session.ds().unwrap().path.clone().unwrap();
+    assert!(!session.prefs.auto_save);
+    let mut h = Harness::new(session);
+    h.frame(vec![]);
+    h.run("shape.rectangle", json!({"x":500,"y":300,"width":40,"height":40}));
+    h.frame(vec![]);
+    h.time += crate::AUTO_SAVE_SECS + 0.1;
+    let start = Instant::now();
+    while h.app.session.ds().unwrap().is_dirty() {
+        assert!(start.elapsed() < Duration::from_secs(20), "managed file must save without changing global preferences");
+        h.frame(vec![]);
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    assert!(!h.app.session.prefs.auto_save);
+    let mut reopened = Session::empty();
+    reopened.execute("file.open", &json!({"path":path})).unwrap();
+    assert!(reopened.doc().unwrap().page_content_bounds(reopened.ds().unwrap().page).unwrap().x1 >= 540.);
+    // An ordinary external file still waits for an explicit save.
+    h.run("file.new", json!({"name":"external"}));
+    h.run("file.saveAs", json!({"path":dir.join("external.figcraft")}));
+    h.run("shape.rectangle", json!({"width":20,"height":20}));
+    h.frame(vec![]);
+    h.time += crate::AUTO_SAVE_SECS + 1.;
+    h.frame(vec![]);
+    assert!(h.app.session.ds().unwrap().is_dirty());
+    assert!(h.app.ui.auto_saving.is_empty());
+    std::fs::remove_dir_all(dir).unwrap();
+}

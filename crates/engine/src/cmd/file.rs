@@ -199,6 +199,7 @@ pub fn specs() -> Vec<CommandSpec> {
         ),
         spec!("file.rename", "Rename file", "{name}", true, |s, p| {
             let name = req_string("file.rename", p, "name")?;
+            let name = if s.ds()?.path.as_deref().is_some_and(|p| s.is_managed_path(p)) { super::draft::name(&name)? } else { name };
             s.doc_mut()?.name = name;
             ok()
         }),

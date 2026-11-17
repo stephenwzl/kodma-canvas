@@ -4,6 +4,11 @@ pub const MAX_CLIPBOARD_PNG_BYTES: usize = 256 * 1024 * 1024;
 
 /// Platform services the app crate provides (file dialogs, clipboard, URLs).
 pub trait Services {
+    /// A non-secret persistent identifier for a managed native draft.
+    fn new_draft_id(&mut self) -> Result<String, String> {
+        Err("本地稿件存储不可用".into())
+    }
+
     fn pick_open(&mut self, _title: &str, _exts: &[&str]) -> DialogFuture {
         Box::pin(std::future::ready(None))
     }

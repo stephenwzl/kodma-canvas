@@ -1557,6 +1557,11 @@ pub fn handle(app: &mut FigApp, ctx: &Context, method: &str, p: &Value) -> Resul
             in_document(app, p, |s| s.execute("file.export", &params).map_err(|e| e.to_string()))
         }
         "app.quit" => {
+            // This automation endpoint used to bypass the window close guard. Managed drafts
+            // must finish their real writes before even a programmatic normal exit can proceed.
+            if app.session.drafts.is_some() && !app.workspace_flush_managed() {
+                return Err(app.ui.last_error.clone().unwrap_or_else(|| "local drafts could not be saved".into()));
+            }
             app.ui.quit = true;
             ctx.send_viewport_cmd_to(egui::ViewportId::ROOT, egui::ViewportCommand::Close);
             Ok(json!({"ok": true}))

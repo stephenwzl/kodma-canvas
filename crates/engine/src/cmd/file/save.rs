@@ -113,6 +113,7 @@ impl FileSnapshot {
         ds.saved_doc = self.doc;
         ds.revision += 1;
         branch_tabs_saved(s, self.uid);
+        s.record_draft_save(self.uid)?;
         Ok(true)
     }
 }
@@ -203,6 +204,8 @@ fn save_to(s: &mut Session, path: Option<String>) -> Result<Value> {
     ds.note_on_disk();
     mark_saved(s, &json!({}))?;
     remember(s, &path);
+    let uid = s.docs.get(i).ok_or(EngineError::NoDocument)?.uid;
+    s.record_draft_save(uid)?;
     Ok(json!({"path": path, "bytes": bytes.len()}))
 }
 
@@ -242,6 +245,10 @@ pub(super) fn save(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 pub(super) fn save_as(s: &mut Session, p: &Value) -> Result<Value> {
+    // A managed original remains an independently saved draft when the tab changes destination.
+    if string(p, "path").is_some() && s.ds().ok().and_then(|d| d.path.as_deref()).is_some_and(|p| s.is_managed_path(p)) {
+        save(s, &json!({}))?;
+    }
     match string(p, "path") {
         Some(mut path) => {
             if ext(&path).is_empty() {

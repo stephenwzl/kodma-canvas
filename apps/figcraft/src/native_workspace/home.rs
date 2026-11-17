@@ -207,9 +207,7 @@ impl Controls {
                     button.leading();
                     button.control.setFont(Some(&NSFont::systemFontOfSize(16.)));
                     let menu = NSPopUpButton::initWithFrame_pullsDown(NSPopUpButton::alloc(mtm), rect(0., 0., 32., 44.), true);
-                    for title in ["•••", "重命名…", "另存为…", "从列表移除…"] {
-                        menu.addItemWithTitle(&NSString::from_str(title));
-                    }
+                    populate_menu(&menu, file.managed);
                     menu.setBordered(false);
                     if let Some(items) = menu.menu() {
                         items.setAutoenablesItems(false);
@@ -227,6 +225,9 @@ impl Controls {
                     row.button.view.setHidden(false);
                     row.menu.setHidden(false);
                     row.menu.selectItemAtIndex(0);
+                    if row.file.managed != file.managed {
+                        populate_menu(&row.menu, file.managed);
+                    }
                     row.file = file;
                 },
                 |row, file| !row.button.tracking() || row.file.path == file.path,
@@ -315,6 +316,14 @@ pub(super) fn pressed(button: &NSButton) -> bool {
 fn matches_query(name: &str, query: &str) -> bool {
     name.to_lowercase().contains(&query.trim().to_lowercase())
 }
+
+fn populate_menu(menu: &NSPopUpButton, managed: bool) {
+    menu.removeAllItems();
+    for title in ["•••", "重命名…", "另存为…"].into_iter().chain((!managed).then_some("从列表移除…")) {
+        menu.addItemWithTitle(&NSString::from_str(title));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

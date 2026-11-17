@@ -390,6 +390,10 @@ pub fn on_close_request(app: &mut FigApp, ctx: &Context) {
 
 /// The custom title bar's Close button uses the same unsaved-file check as a system close event.
 pub(crate) fn request_close(app: &mut FigApp, ctx: &Context) {
+    if !app.workspace_flush_managed() {
+        ctx.send_viewport_cmd(ViewportCommand::CancelClose);
+        return;
+    }
     if !app.unsaved().is_empty() {
         app.ui.confirm_close = true;
         ctx.request_repaint();

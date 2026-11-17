@@ -293,7 +293,21 @@ fn main() -> eframe::Result {
     // The interface language from the first frame on, and for the message when the window can't
     // open (no frame then).
     figcraft_ui_egui::i18n::set(&session.prefs.language, figcraft_ui_egui::Services::system_language(&svc).as_deref());
+    if args.native_workspace {
+        session.drafts = Some(match services::config_dir() {
+            Some(dir) => figcraft_engine::cmd::draft::Store::load(dir.join("Drafts")),
+            None => {
+                figcraft_engine::cmd::draft::Store {
+                    root: Default::default(), entries: Vec::new(), problem: Some("应用本地存储目录不可用".into())
+                }
+            }
+        });
+    }
+    let draft_problem = session.drafts.as_ref().and_then(|s| s.problem.clone());
     let mut fig = FigApp::new(session, Box::new(svc));
+    if let Some(problem) = draft_problem {
+        fig.show_error(problem);
+    }
     fig.canvas_host = args.canvas_only.then(figcraft_ui_egui::CanvasHost::default);
     fig.set_startup_update_check(!args.canvas_only);
     fig.automation_roots = roots;

@@ -63,19 +63,66 @@ pub enum Action {
 pub struct RecentFile {
     pub path: String,
     pub name: String,
+    pub managed: bool,
 }
 
 impl FigApp {
     pub fn workspace_recents(&self) -> Vec<RecentFile> {
-        crate::home_recents::listed(&self.session.prefs.recent_files)
+        let managed = self.session.drafts.as_ref().into_iter().flat_map(|store| {
+            store.entries.iter().map(|entry| RecentFile {
+                path: store.path(&entry.id).to_string_lossy().into_owned(),
+                name: entry.name.clone(),
+                managed: true,
+            })
+        });
+        let external = crate::home_recents::listed(&self.session.prefs.recent_files)
             .take(figcraft_engine::cmd::file::MAX_RECENT)
+            .filter(|path| !self.session.is_managed_path(path))
             .map(|path| RecentFile {
                 path: path.clone(),
-                name: self.session.docs.iter().find(|d| d.path.as_deref() == Some(path.as_str())).map(|d| d.doc.name.clone()).unwrap_or_else(|| {
-                    std::path::Path::new(path).file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone())
-                }),
+                name: std::path::Path::new(path).file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| path.clone()),
+                managed: false,
+            });
+        let mut seen = std::collections::HashSet::new();
+        managed
+            .chain(external)
+            .filter(|file| {
+                figcraft_engine::file_access::allowed(&file.path, figcraft_engine::file_access::Access::Read) && seen.insert(file.path.clone())
+            })
+            .map(|mut file| {
+                if let Some(ds) = self.session.docs.iter().find(|d| d.path.as_deref() == Some(file.path.as_str())) {
+                    file.name = ds.doc.name.clone();
+                }
+                file
             })
             .collect()
+    }
+
+    /// Finish managed writes before navigation/lifecycle actions. A failed save leaves the
+    /// document open and dirty; existing native error presentation offers retry through Save.
+    pub(crate) fn workspace_flush_managed(&mut self) -> bool {
+        let owner = self.session.ds().ok().map(|d| d.uid);
+        let targets: Vec<_> = self
+            .session
+            .docs
+            .iter()
+            .filter(|d| d.is_dirty() && d.path.as_deref().is_some_and(|p| self.session.is_managed_path(p)))
+            .map(|d| d.uid)
+            .collect();
+        let mut success = true;
+        for uid in targets {
+            if let Some(index) = self.session.docs.iter().position(|d| d.uid == uid) {
+                self.session.active = index;
+                if self.run("draft.save", serde_json::json!({})).is_none() {
+                    success = false;
+                    break;
+                }
+            }
+        }
+        if let Some(index) = owner.and_then(|uid| self.session.docs.iter().position(|d| d.uid == uid)) {
+            self.session.active = index;
+        }
+        success
     }
 
     pub fn workspace_action(&mut self, action: Action) {
@@ -128,7 +175,26 @@ impl FigApp {
                 self.run_user(id, serde_json::json!({}));
             }
             Action::New => {
-                if self.run_user("file.new", serde_json::json!({})).is_some() {
+                if self.session.drafts.is_some() {
+                    // Retry an unpublished initial draft rather than accumulating ghost tabs.
+                    let pending = self.session.docs.iter().position(|d| {
+                        d.path.as_deref().is_some_and(|p| {
+                            self.session.drafts.as_ref().is_some_and(|s| s.id_at(p).is_some_and(|id| !s.entries.iter().any(|e| e.id == id)))
+                        })
+                    });
+                    self.ui.home = false;
+                    if let Some(index) = pending {
+                        self.session.active = index;
+                        self.run_user("draft.save", serde_json::json!({}));
+                    } else {
+                        match self.services.new_draft_id() {
+                            Ok(id) => {
+                                self.run_user("draft.create", serde_json::json!({"id":id}));
+                            }
+                            Err(error) => self.show_error(error),
+                        }
+                    }
+                } else if self.run_user("file.new", serde_json::json!({})).is_some() {
                     self.ui.home = false;
                 }
             }
@@ -141,6 +207,11 @@ impl FigApp {
             }
             Action::Close(uid) => {
                 if let Some(index) = self.workspace_index(uid) {
+                    if self.session.docs.get(index).and_then(|d| d.path.as_deref()).is_some_and(|p| self.session.is_managed_path(p))
+                        && !self.workspace_flush_managed()
+                    {
+                        return;
+                    }
                     crate::windows::ask_close_tab(self, index);
                 }
             }
@@ -159,10 +230,12 @@ impl FigApp {
             Action::AnswerClose(..) => {}
             Action::Open => self.open_dialog(),
             Action::Home => {
-                self.run("doc.home", serde_json::json!({}));
+                if self.workspace_flush_managed() {
+                    self.run("doc.home", serde_json::json!({}));
+                }
             }
             Action::RemoveRecent(path) => {
-                if self.workspace_recents().iter().any(|f| f.path == path) {
+                if self.workspace_recents().iter().any(|f| f.path == path && !f.managed) {
                     self.run("file.openRecent", serde_json::json!({"remove":path}));
                 }
             }
@@ -376,6 +449,73 @@ mod tests {
         let before = ui.app.workspace_snapshot();
         ui.app.workspace_action(super::Action::RenameRecent(path, "Stale".into()));
         assert_eq!(ui.app.workspace_snapshot(), before);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    struct DraftIds(u64);
+    impl crate::Services for DraftIds {
+        fn new_draft_id(&mut self) -> Result<String, String> {
+            self.0 += 1;
+            Ok(format!("{:032x}", self.0))
+        }
+    }
+    #[test]
+    fn managed_new_home_close_and_reopen_keep_names_contents_and_identity() {
+        let (dir, _) = fixture("managed");
+        let root = dir.join("Drafts");
+        let mut session = Session::empty();
+        session.drafts = Some(figcraft_engine::cmd::draft::Store::load(root.clone()));
+        let mut ui = Ui::new(session);
+        ui.app.services = Box::new(DraftIds(0));
+        ui.app.workspace_action(super::Action::New);
+        let uid = ui.app.session.ds().unwrap().uid;
+        assert!(!ui.app.session.ds().unwrap().is_dirty());
+        assert_eq!(ui.app.workspace_recents().len(), 1);
+        let path = ui.app.workspace_recents()[0].path.clone();
+        assert!(std::path::Path::new(&path).is_file());
+        ui.app.run("shape.rectangle", json!({"width":60,"height":70}));
+        ui.app.workspace_action(super::Action::Home);
+        assert!(ui.app.ui.home && !ui.app.session.ds().unwrap().is_dirty());
+        ui.app.workspace_action(super::Action::RenameRecent(path.clone(), "中文稿名".into()));
+        assert_eq!(ui.app.workspace_recents()[0].name, "中文稿名");
+        ui.app.workspace_action(super::Action::Close(uid));
+        assert!(ui.app.session.docs.is_empty());
+        ui.app.workspace_action(super::Action::Recent(path.clone()));
+        assert_eq!(ui.app.session.doc().unwrap().name, "中文稿名");
+        assert_ne!(ui.app.session.ds().unwrap().uid, uid);
+        let count = ui.app.session.docs.len();
+        ui.app.workspace_action(super::Action::RemoveRecent(path));
+        assert_eq!(ui.app.workspace_recents().len(), 1, "managed content cannot be removed as a recent reference");
+        assert_eq!(ui.app.session.docs.len(), count);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn managed_save_failure_cancels_home_close_and_quit_and_retry_creates_no_duplicate() {
+        let (dir, _) = fixture("managed-error");
+        let root = dir.join("Drafts");
+        let mut session = Session::empty();
+        session.drafts = Some(figcraft_engine::cmd::draft::Store::load(root.clone()));
+        std::fs::write(&root, b"blocked").unwrap();
+        let mut ui = Ui::new(session);
+        ui.app.services = Box::new(DraftIds(0));
+        ui.app.workspace_action(super::Action::New);
+        let uid = ui.app.session.ds().unwrap().uid;
+        assert!(ui.app.session.ds().unwrap().is_dirty() && ui.app.workspace_recents().is_empty());
+        ui.app.workspace_action(super::Action::Home);
+        assert!(!ui.app.ui.home);
+        ui.app.workspace_action(super::Action::Close(uid));
+        assert_eq!(ui.app.session.docs.len(), 1);
+        let out = ui.ctx.run_ui(egui::RawInput::default(), |frame| crate::windows::request_close(&mut ui.app, frame.ctx()));
+        assert!(out.viewport_output.values().any(|v| v.commands.iter().any(|c| matches!(c, egui::ViewportCommand::CancelClose))));
+        assert!(!ui.app.ui.quit);
+        assert!(crate::control::handle(&mut ui.app, &ui.ctx, "app.quit", &json!({})).is_err());
+        assert!(!ui.app.ui.quit && ui.app.session.ds().unwrap().is_dirty());
+        std::fs::remove_file(&root).unwrap();
+        ui.app.workspace_action(super::Action::New);
+        assert_eq!(ui.app.session.docs.len(), 1);
+        assert_eq!(ui.app.session.ds().unwrap().uid, uid);
+        assert_eq!(ui.app.workspace_recents().len(), 1);
+        assert!(!ui.app.session.ds().unwrap().is_dirty());
         std::fs::remove_dir_all(dir).unwrap();
     }
 

@@ -11,6 +11,7 @@ impl Session {
     /// A session with no documents (the home screen).
     pub fn empty() -> Self {
         Self {
+            drafts: None,
             docs: Vec::new(),
             active: 0,
             clipboard: Clipboard::default(),

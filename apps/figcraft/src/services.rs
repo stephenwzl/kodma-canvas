@@ -481,6 +481,10 @@ pub(crate) fn remembering(last: Arc<Mutex<Option<PathBuf>>>, pick: DialogFuture,
 }
 
 impl Services for Desktop {
+    fn new_draft_id(&mut self) -> Result<String, String> {
+        Ok(format!("{}{}", figcraft_collab_net::token::file_id()?, figcraft_collab_net::token::file_id()?))
+    }
+
     fn pick_open(&mut self, title: &str, exts: &[&str]) -> DialogFuture {
         let pick = picked(self.dialog_in_last_folder(title).add_filter("Supported files", exts).pick_file());
         remembering(self.last_folder.clone(), pick, false)

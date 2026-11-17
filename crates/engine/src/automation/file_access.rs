@@ -493,6 +493,21 @@ pub fn read_dir(path: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
     Ok(std::fs::read_dir(&dir).map_err(io(path))?.flatten().map(|e| e.path()).collect())
 }
 
+/// Enumerate a product-managed folder without unbounded allocation.
+pub fn read_dir_capped(path: impl AsRef<Path>, max: usize) -> Result<Vec<PathBuf>> {
+    let path = path.as_ref();
+    let dir = allow(path, Access::Read)?;
+    let entries = std::fs::read_dir(&dir).map_err(io(path))?;
+    let mut result = Vec::new();
+    for entry in entries.take(max.saturating_add(1)) {
+        if result.len() >= max {
+            return Err(EngineError::Other("local draft directory exceeds its safety limit".into()));
+        }
+        result.push(entry.map_err(io(path))?.path());
+    }
+    Ok(result)
+}
+
 /// Write `bytes` to `path` through a uniquely named staging file and one atomic rename (see
 /// [`figcraft_format::write_file_atomic`]).
 pub fn write(path: impl AsRef<Path>, bytes: &[u8]) -> Result<()> {

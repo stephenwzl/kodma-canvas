@@ -5,6 +5,9 @@ use super::{
 
 impl FigApp {
     pub fn save_as_dialog(&mut self) {
+        if !self.workspace_flush_managed() {
+            return;
+        }
         if self.services.downloads() {
             self.save_download(None);
             return;
@@ -60,7 +63,17 @@ impl FigApp {
             .and_then(|d| d.path.as_deref())
             .is_some_and(|path| !Path::new(path).extension().and_then(OsStr::to_str).is_some_and(|e| e.eq_ignore_ascii_case("fig")));
         if native_path {
-            if self.run("file.save", json!({})).is_some() {
+            if self
+                .run(
+                    if self.session.ds().ok().and_then(|d| d.path.as_deref()).is_some_and(|p| self.session.is_managed_path(p)) {
+                        "draft.save"
+                    } else {
+                        "file.save"
+                    },
+                    json!({}),
+                )
+                .is_some()
+            {
                 self.toast(i18n::tr("Saved"));
             }
         } else if let Some(name) = self.services.host_file().filter(|n| is_document_file(n)) {
@@ -238,10 +251,11 @@ impl FigApp {
     pub(super) fn auto_save_tick(&mut self, ctx: &egui::Context, now: f64) {
         let mut failed = self.auto_save_done();
         // The browser has no files to save to.
-        let on = !cfg!(target_arch = "wasm32") && self.session.prefs.auto_save;
+        let on = !cfg!(target_arch = "wasm32");
         let saving = &self.ui.auto_saving;
         let due = |d: &&figcraft_engine::DocState| {
             d.path.as_deref().is_some_and(|p| d.images_lost_saving_to(p).is_none())
+                && (self.session.prefs.auto_save || d.path.as_deref().is_some_and(|p| self.session.is_managed_path(p)))
                 && d.branch_of.is_none()
                 && d.preview.is_none()
                 && d.is_dirty()
@@ -284,6 +298,8 @@ impl FigApp {
             repaint_in(ctx, 0.1);
         }
         if let Some(e) = failed {
+            self.ui.last_error = Some(e.clone());
+            self.ui.auto_save_error = Some(e.clone());
             self.toast(i18n::trf("Couldn't save automatically: {error}", &[("error", &e)]));
         }
     }
@@ -294,16 +310,27 @@ impl FigApp {
             return None;
         }
         let mut failed = None;
+        let mut wrote = false;
         let done: Vec<_> = self.ui.auto_saving.extract_if(.., |(_, h)| h.is_finished()).collect();
         for (_, h) in done {
             let saved = match h.join() {
-                Ok((snapshot, Ok(bytes))) => snapshot.save(&mut self.session, &bytes).map(|_| ()).map_err(|e| e.to_string()),
+                Ok((snapshot, Ok(bytes))) => snapshot.save(&mut self.session, &bytes).map_err(|e| e.to_string()),
                 Ok((_, Err(e))) => Err(e.to_string()),
                 Err(_) => Err("the file couldn't be encoded".to_string()),
             };
-            if let Err(e) = saved {
-                failed.get_or_insert(e);
+            match saved {
+                Ok(written) => wrote |= written,
+                Err(e) => {
+                    failed.get_or_insert(e);
+                }
             }
+        }
+        if wrote
+            && failed.is_none()
+            && let Some(previous) = self.ui.auto_save_error.take()
+            && self.ui.last_error.as_deref() == Some(previous.as_str())
+        {
+            self.ui.last_error = None;
         }
         failed
     }

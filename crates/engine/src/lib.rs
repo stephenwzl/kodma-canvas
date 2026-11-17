@@ -116,6 +116,8 @@ pub use view_state::ViewState;
 
 /// The editing session: open documents, the current tool, clipboard and prefs.
 pub struct Session {
+    /// Configured only by the Kodma native host; never a second editable document model.
+    pub drafts: Option<cmd::draft::Store>,
     pub docs: Vec<DocState>,
     pub active: usize,
     pub clipboard: Clipboard,

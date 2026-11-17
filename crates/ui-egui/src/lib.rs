@@ -626,6 +626,8 @@ pub struct UiState {
     /// With auto-save on: when (monotonic [`FrameClock`], seconds) files with unsaved changes are next saved, and
     /// the revisions of those files it waits on (a change restarts the wait).
     pub auto_save_at: Option<(f64, u64)>,
+    /// Error owned by automatic saving; clear only its own message after a real successful write.
+    pub auto_save_error: Option<String>,
     /// Files being encoded for auto-save on threads of their own (tab `uid`).
     pub auto_saving: Vec<(u64, AutoSaveEncoding)>,
     /// The Assets panel shows the libraries view (publish this file, enabled libraries).
@@ -764,6 +766,7 @@ impl Default for UiState {
             held: egui::Modifiers::NONE,
             next_autosave: 0.0,
             auto_save_at: None,
+            auto_save_error: None,
             auto_saving: Vec::new(),
             libraries: false,
             nav: a11y::Nav::default(),

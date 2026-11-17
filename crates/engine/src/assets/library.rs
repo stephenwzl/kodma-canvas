@@ -479,7 +479,7 @@ pub fn publish(doc: &Document, prev: Option<&PublishedLibrary>, sel: &Selection,
 }
 
 /// When a file was last read: its length and modification time (also a document's own file, #1330).
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Stamp {
     len: u64,
     modified: Option<std::time::SystemTime>,

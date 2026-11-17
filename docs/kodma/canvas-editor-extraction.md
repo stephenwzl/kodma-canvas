@@ -1,6 +1,6 @@
 # Kodma 画布显示与 macOS 原生承载方案
 
-更新日期：2026-11-17。状态：S001 已由用户验收通过并完成，跨显示比例测试按用户决定取消。当前承载基线见 [S001 v2](../../spec/001-canvas-editor/spec.md)；产品工作区按 [S002 v1.2](../../spec/002-native-workspace/spec.md)实施，I1–I5 工程交付与本轮检查已有记录，完整运行时继续保留，中文及S002最终验收待用户完成。
+更新日期：2026-11-17。状态：S001 与 S002 均已由用户验收通过并完成。保留完整 FigCraft 运行时的技术路线不变；承载基线见[S001 v2](../../spec/001-canvas-editor/spec.md)，原生工作区结项见[S002 v1.2](../../spec/002-native-workspace/spec.md)和[验收记录](../../spec/002-native-workspace/progress.md)。
 
 ## 技术路线
 

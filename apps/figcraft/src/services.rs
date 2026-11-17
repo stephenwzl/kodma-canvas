@@ -661,3 +661,23 @@ mod save_filter_tests {
         }
     }
 }
+
+/// Recoverable OS operation only. Never fall back to unlinking a person's file.
+pub(crate) fn trash_draft(path: &std::path::Path) -> figcraft_engine::Result<std::path::PathBuf> {
+    #[cfg(target_os = "macos")]
+    {
+        use objc2_foundation::{NSFileManager, NSString, NSURL};
+        let path = path.to_str().ok_or_else(|| figcraft_engine::EngineError::Other("文件路径无法编码".into()))?;
+        let url = NSURL::fileURLWithPath(&NSString::from_str(path));
+        let mut result = None;
+        NSFileManager::defaultManager()
+            .trashItemAtURL_resultingItemURL_error(&url, Some(&mut result))
+            .map_err(|e| figcraft_engine::EngineError::Other(e.to_string()))?;
+        Ok(result.and_then(|url| url.path()).map(|path| std::path::PathBuf::from(path.to_string())).unwrap_or_default())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = path;
+        Err(figcraft_engine::EngineError::Other("系统废纸篓不可用，未删除文件".into()))
+    }
+}

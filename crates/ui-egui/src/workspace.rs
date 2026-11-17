@@ -46,6 +46,8 @@ pub enum Action {
     RenameRecent(String, String),
     SaveAsRecent(String),
     RemoveRecent(String),
+    TrashRecent(String),
+    ForgetMissingRecent(String),
     Switch(u64),
     Close(u64),
     Save(u64),
@@ -84,7 +86,7 @@ impl FigApp {
                 managed: false,
             });
         let mut seen = std::collections::HashSet::new();
-        managed
+        let mut files: Vec<_> = managed
             .chain(external)
             .filter(|file| {
                 figcraft_engine::file_access::allowed(&file.path, figcraft_engine::file_access::Access::Read) && seen.insert(file.path.clone())
@@ -95,7 +97,11 @@ impl FigApp {
                 }
                 file
             })
-            .collect()
+            .collect();
+        // Recent operations order both ownership kinds together. The rest of the managed
+        // index follows in saved order, without applying the reference host's 20-item cap.
+        files.sort_by_key(|f| self.session.prefs.recent_files.iter().position(|p| p == &f.path).unwrap_or(usize::MAX));
+        files
     }
 
     /// Finish managed writes before navigation/lifecycle actions. A failed save leaves the
@@ -239,20 +245,28 @@ impl FigApp {
                     self.run("file.openRecent", serde_json::json!({"remove":path}));
                 }
             }
+            Action::TrashRecent(path) => {
+                if let Some(id) = self.session.drafts.as_ref().and_then(|s| s.id_at(&path)) {
+                    self.run_user("draft.trash", serde_json::json!({"id":id,"confirmed":true}));
+                }
+            }
+            Action::ForgetMissingRecent(path) => {
+                if let Some(id) = self.session.drafts.as_ref().and_then(|s| s.id_at(&path)) {
+                    self.run_user("draft.forgetMissing", serde_json::json!({"id":id}));
+                }
+            }
             Action::RenameRecent(path, name) => {
                 let name = name.trim();
                 if !name.is_empty()
                     && self.workspace_recents().iter().any(|f| f.path == path)
-                    && self.run_user("file.openRecent", serde_json::json!({"path":path})).is_some()
+                    && self.run_user("file.open", serde_json::json!({"path":path})).is_some()
                     && self.run_user("file.rename", serde_json::json!({"name":name})).is_some()
                 {
                     self.run_user("file.save", serde_json::json!({}));
                 }
             }
             Action::SaveAsRecent(path) => {
-                if self.workspace_recents().iter().any(|f| f.path == path)
-                    && self.run_user("file.openRecent", serde_json::json!({"path":path})).is_some()
-                {
+                if self.workspace_recents().iter().any(|f| f.path == path) && self.run_user("file.open", serde_json::json!({"path":path})).is_some() {
                     self.ui.home = false;
                     self.save_as_dialog();
                 }
@@ -261,7 +275,7 @@ impl FigApp {
                 // Capture a path, not an index: recency order can change between click and tick.
                 // A button removed meanwhile cannot reopen a file the user already removed.
                 if self.workspace_recents().iter().any(|file| file.path == path)
-                    && self.run_user("file.openRecent", serde_json::json!({"path":path})).is_some()
+                    && self.run_user("file.open", serde_json::json!({"path":path})).is_some()
                 {
                     self.ui.home = false;
                 }
@@ -406,6 +420,8 @@ mod tests {
         assert!(ui.app.ui.home && ui.app.ui.last_error.is_some());
         assert_eq!(ui.app.session.docs.len(), 1);
         assert_eq!(ui.app.session.ds().unwrap().uid, original.active.unwrap());
+        assert_eq!(ui.app.workspace_recents().len(), 1, "failed open keeps an explicit removal path");
+        ui.app.workspace_action(super::Action::RemoveRecent(path.clone()));
         assert!(ui.app.workspace_recents().is_empty());
         std::fs::write(&path, b"not a figcraft file").unwrap();
         ui.app.session.prefs.recent_files = vec![path.clone()];
@@ -449,6 +465,39 @@ mod tests {
         let before = ui.app.workspace_snapshot();
         ui.app.workspace_action(super::Action::RenameRecent(path, "Stale".into()));
         assert_eq!(ui.app.workspace_snapshot(), before);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn full_managed_list_merges_recent_operations_and_path_owned_actions() {
+        let (dir, external) = fixture("full-managed-list");
+        let mut session = Session::empty();
+        session.drafts = Some(figcraft_engine::cmd::draft::Store::load(dir.join("Drafts")));
+        for n in 1..=26 {
+            session.execute("draft.create", &json!({"id":format!("{n:032x}"),"name":format!("稿件 {n:02}")})).unwrap();
+            session.execute("file.close", &json!({})).unwrap();
+        }
+        let mut ui = Ui::new(session);
+        assert_eq!(ui.app.workspace_recents().len(), 26);
+        let oldest = ui.app.workspace_recents().last().unwrap().path.clone();
+        let pending = super::Action::RenameRecent(oldest.clone(), "同名 App".into());
+        ui.app.run("file.open", json!({"path":external}));
+        assert_eq!(ui.app.workspace_recents().len(), 27);
+        assert_eq!(ui.app.workspace_recents()[0].path, external);
+        ui.app.workspace_action(pending);
+        assert_eq!(ui.app.workspace_recents()[0].path, oldest);
+        assert_eq!(ui.app.workspace_recents()[0].name, "同名 App");
+        ui.app.workspace_action(super::Action::Recent(external.clone()));
+        ui.app.run("shape.rectangle", json!({"width":33,"height":44}));
+        let uid = ui.app.session.ds().unwrap().uid;
+        ui.app.workspace_action(super::Action::RemoveRecent(external.clone()));
+        assert!(ui.app.session.ds().unwrap().is_dirty());
+        assert_eq!(ui.app.session.ds().unwrap().uid, uid);
+        assert_eq!(ui.app.workspace_recents().len(), 26);
+        assert!(std::path::Path::new(&external).is_file());
+        ui.app.run("file.open", json!({"path":external}));
+        assert_eq!(ui.app.workspace_recents().len(), 27);
+        assert_eq!(ui.app.session.ds().unwrap().uid, uid);
         std::fs::remove_dir_all(dir).unwrap();
     }
 

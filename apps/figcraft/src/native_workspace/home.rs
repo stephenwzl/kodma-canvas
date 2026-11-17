@@ -41,6 +41,7 @@ pub(super) struct Controls {
     focus: crate::native_canvas::NativeInputFocus,
     input_context: Option<Retained<NSTextInputContext>>,
     geometry: Option<(f64, f64, bool, bool)>,
+    review_action: Option<(String, String)>,
 }
 
 impl Controls {
@@ -114,6 +115,11 @@ impl Controls {
             focus: Default::default(),
             input_context: None,
             geometry: None,
+            // Explicit validation-launch hook opens a real confirmation for a real listed file.
+            // It never confirms the action and is absent in ordinary launches.
+            review_action: std::env::var("KODMA_S003_REVIEW_ACTION")
+                .ok()
+                .and_then(|v| v.split_once(':').map(|(kind, path)| (kind.into(), path.into()))),
         };
         if let Ok(kind) = std::env::var("KODMA_S003_UI_STATE")
             && matches!(kind.as_str(), "trash" | "save-error")
@@ -138,6 +144,8 @@ impl Controls {
                 actions.push(match intent {
                     Intent::Rename(path) => Action::RenameRecent(path, name),
                     Intent::Remove(path) => Action::RemoveRecent(path),
+                    Intent::Trash(path) => Action::TrashRecent(path),
+                    Intent::ForgetMissing(path) => Action::ForgetMissingRecent(path),
                     Intent::Preview => return actions,
                 });
             }
@@ -160,7 +168,12 @@ impl Controls {
                 match choice {
                     1 => self.dialog.show(Intent::Rename(row.file.path.clone()), &row.file.name, &self.window),
                     2 => actions.push(Action::SaveAsRecent(row.file.path.clone())),
-                    3 => self.dialog.show(Intent::Remove(row.file.path.clone()), &row.file.name, &self.window),
+                    3 => self.dialog.show(
+                        if row.file.managed { Intent::Trash(row.file.path.clone()) } else { Intent::Remove(row.file.path.clone()) },
+                        &row.file.name,
+                        &self.window,
+                    ),
+                    4 if row.file.managed => self.dialog.show(Intent::ForgetMissing(row.file.path.clone()), &row.file.name, &self.window),
                     _ => {}
                 }
             }
@@ -190,6 +203,22 @@ impl Controls {
             && let Some(context) = &self.input_context
         {
             context.activate();
+        }
+        if is_home
+            && !busy
+            && let Some((kind, path)) = self.review_action.take()
+            && let Some(file) = recents.iter().find(|f| f.path == path)
+        {
+            use super::draft_dialog::Intent;
+            let intent = match kind.as_str() {
+                "trash" if file.managed => Some(Intent::Trash(path)),
+                "remove" if !file.managed => Some(Intent::Remove(path)),
+                "missing" if file.managed => Some(Intent::ForgetMissing(path)),
+                _ => None,
+            };
+            if let Some(intent) = intent {
+                self.dialog.show(intent, &file.name, &self.window);
+            }
         }
         let query = self.search.currentEditor().map(|editor| editor.string().to_string()).unwrap_or_else(|| self.search.stringValue().to_string());
         let recents: Vec<_> = recents.into_iter().filter(|file| matches_query(&file.name, &query)).collect();
@@ -221,7 +250,8 @@ impl Controls {
                     if row.file.name.is_empty() != file.name.is_empty() {
                         row.button.icon("folder", 0x121212);
                     }
-                    row.button.control.setToolTip(Some(&NSString::from_str(&file.path)));
+                    row.button.control.setToolTip(Some(&NSString::from_str(&format!("{}\n{}", file.name, file.path))));
+                    row.menu.setToolTip(Some(&NSString::from_str(&format!("{}\n{}", file.name, file.path))));
                     row.button.view.setHidden(false);
                     row.menu.setHidden(false);
                     row.menu.selectItemAtIndex(0);
@@ -230,7 +260,7 @@ impl Controls {
                     }
                     row.file = file;
                 },
-                |row, file| !row.button.tracking() || row.file.path == file.path,
+                |row, file| (!row.button.tracking() && !row.menu.isHighlighted()) || row.file.path == file.path,
             );
             for row in self.rows.inactive() {
                 row.button.view.setHidden(true);
@@ -319,7 +349,11 @@ fn matches_query(name: &str, query: &str) -> bool {
 
 fn populate_menu(menu: &NSPopUpButton, managed: bool) {
     menu.removeAllItems();
-    for title in ["•••", "重命名…", "另存为…"].into_iter().chain((!managed).then_some("从列表移除…")) {
+    for title in ["•••", "重命名…", "另存为…"].into_iter().chain(if managed {
+        vec!["移到废纸篓…", "移除失效记录…"]
+    } else {
+        vec!["从列表移除…"]
+    }) {
         menu.addItemWithTitle(&NSString::from_str(title));
     }
 }

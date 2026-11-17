@@ -18,6 +18,8 @@ pub struct Store {
     pub root: PathBuf,
     pub entries: Vec<Entry>,
     pub problem: Option<String>,
+    /// Host-provided recoverable system trash; absent in CLI/Web and reference sessions.
+    pub trash: Option<fn(&Path) -> Result<PathBuf>>,
 }
 fn error(message: impl ToString) -> EngineError {
     EngineError::Other(message.to_string())
@@ -34,7 +36,7 @@ pub(super) fn name(value: &str) -> Result<String> {
 }
 impl Store {
     pub fn load(root: PathBuf) -> Self {
-        let mut store = Self { root, entries: Vec::new(), problem: None };
+        let mut store = Self { root, entries: Vec::new(), problem: None, trash: None };
         if let Err(e) = store.read() {
             store.problem = Some(e.to_string());
         }
@@ -73,7 +75,17 @@ impl Store {
             if recovered > 32 || (previous.is_none() && self.entries.len() >= LIMIT) {
                 return Err(error("本地稿件恢复数量超过本轮安全上限"));
             }
-            let (doc, _) = super::file::load(&path.to_string_lossy())?;
+            let (doc, _) = match super::file::load(&path.to_string_lossy()) {
+                Ok(value) => value,
+                // A damaged file must not disable every other draft. Keep its known identity
+                // so it can be trashed explicitly; opening still reports the original error.
+                Err(_) => {
+                    if previous.is_none() {
+                        self.entries.push(Entry { id: id.to_string(), name: "无法读取的稿件".into(), stamp: None });
+                    }
+                    continue;
+                }
+            };
             let entry = Entry { id: id.to_string(), name: name(&doc.name)?, stamp: Some(stamp) };
             if let Some(slot) = previous.and_then(|i| self.entries.get_mut(i)) {
                 *slot = entry;
@@ -101,12 +113,16 @@ impl Store {
         let mut next = self.entries.clone();
         next.retain(|e| e.id != entry.id);
         next.insert(0, entry);
-        let bytes = serde_json::to_vec(&next).map_err(error)?;
+        self.write_index(&next)?;
+        self.entries = next;
+        Ok(())
+    }
+    fn write_index(&self, entries: &[Entry]) -> Result<()> {
+        let bytes = serde_json::to_vec(entries).map_err(error)?;
         if bytes.len() as u64 > INDEX_BYTES {
             return Err(error("本地稿件索引过大"));
         }
         file_access::write(self.root.join("index.json"), &bytes)?;
-        self.entries = next;
         Ok(())
     }
 }
@@ -137,6 +153,14 @@ impl Session {
 
 pub fn specs() -> Vec<CommandSpec> {
     vec![
+        spec!(
+            "draft.trash",
+            "Move local draft to system trash",
+            "{id, confirmed: true}; saves edits first; requires native trash service",
+            false,
+            trash
+        ),
+        spec!("draft.forgetMissing", "Remove missing local draft record", "{id}; refuses existing files or open documents", false, forget_missing),
         spec!("draft.create", "New local draft", "{id (32 hex digits, supplied by the host), name?}", false, create),
         spec!("draft.list", "Local drafts", "{} → {files: [{id, name, path}]}; configured native host only", false, |s, _| {
             let store = s.drafts.as_ref().ok_or_else(|| error("本地稿件存储尚未配置"))?;
@@ -189,6 +213,78 @@ fn create(s: &mut Session, p: &Value) -> Result<Value> {
     file_access::create_dir_all(root)?;
     s.execute("file.save", &json!({}))?;
     Ok(json!({"id":id,"document":uid,"path":path}))
+}
+
+fn target(s: &Session, p: &Value) -> Result<(String, PathBuf)> {
+    let id = crate::params::req_string("draft", p, "id")?;
+    let store = s.drafts.as_ref().ok_or_else(|| error("本地稿件存储尚未配置"))?;
+    if let Some(problem) = &store.problem {
+        return Err(error(problem));
+    }
+    if !store.entries.iter().any(|entry| entry.id == id) {
+        return Err(error("稿件已不在列表中"));
+    }
+    let path = store.path(&id);
+    file_access::allow(&path, file_access::Access::Write)?;
+    Ok((id, path))
+}
+fn forget_missing(s: &mut Session, p: &Value) -> Result<Value> {
+    let (id, path) = target(s, p)?;
+    if !file_access::missing(&path)? {
+        return Err(error("文件仍存在，请使用移到废纸篓"));
+    }
+    if s.docs.iter().any(|d| d.path.as_deref() == path.to_str()) {
+        return Err(error("稿件仍在编辑，请先另存或关闭"));
+    }
+    let store = s.drafts.as_mut().ok_or(EngineError::NoDocument)?;
+    let next: Vec<_> = store.entries.iter().filter(|e| e.id != id).cloned().collect();
+    store.write_index(&next)?;
+    store.entries = next;
+    s.prefs.recent_files.retain(|p| Path::new(p) != path);
+    Ok(json!({"removed":id}))
+}
+fn trash(s: &mut Session, p: &Value) -> Result<Value> {
+    if p.get("confirmed").and_then(Value::as_bool) != Some(true) {
+        return Ok(json!({"cancelled":true}));
+    }
+    let (id, path) = target(s, p)?;
+    let platform = s.drafts.as_ref().and_then(|d| d.trash).ok_or_else(|| error("系统废纸篓不可用，未删除文件"))?;
+    let index = s.docs.iter().position(|d| d.path.as_deref() == path.to_str() && d.branch_of.is_none());
+    if index.and_then(|i| s.docs.get(i)).is_some_and(|d| s.live().doc_uid == Some(d.uid)) {
+        return Err(error("请先离开稿件的协作会话"));
+    }
+    let owner = s.ds().ok().map(|d| d.uid);
+    if let Some(i) = index {
+        s.active = i;
+        let saved = if s.ds()?.is_dirty() { s.execute("draft.save", &json!({})).map(|_| ()) } else { Ok(()) };
+        if let Some(i) = owner.and_then(|uid| s.docs.iter().position(|d| d.uid == uid)) {
+            s.active = i;
+        }
+        saved?;
+    }
+    let store = s.drafts.as_mut().ok_or(EngineError::NoDocument)?;
+    let next: Vec<_> = store.entries.iter().filter(|e| e.id != id).cloned().collect();
+    // Preflight the index before touching content. A crash before the OS move is recovered by
+    // startup's orphan scan. Keep the in-memory entry and every tab until the OS confirms success.
+    store.write_index(&next)?;
+    let trashed = match platform(&path) {
+        Ok(path) => path,
+        Err(e) => {
+            let rollback = store.write_index(&store.entries);
+            return Err(error(match rollback {
+                Ok(()) => format!("未能移到废纸篓：{e}"),
+                Err(restore) => format!("未能移到废纸篓：{e}；索引恢复失败：{restore}。原文件与编辑仍保留"),
+            }));
+        }
+    };
+    store.entries = next;
+    s.prefs.recent_files.retain(|p| Path::new(p) != path);
+    if let Some(i) = index {
+        // The target was saved above. Removing its UID also invalidates all pending snapshots;
+        // they encode only and cannot recreate a file after its tab has gone.
+        s.execute("file.close", &json!({"index":i,"force":true}))?;
+    }
+    Ok(json!({"id":id,"trashed":trashed}))
 }
 
 #[cfg(test)]

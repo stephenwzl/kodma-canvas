@@ -138,3 +138,93 @@ fn outside_write_is_not_overwritten_by_managed_save() {
     assert_eq!(std::fs::read(path).unwrap(), external);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+fn test_trash(path: &Path) -> Result<PathBuf> {
+    let destination = path.with_extension("test-trash");
+    std::fs::rename(path, &destination).map_err(error)?;
+    Ok(destination)
+}
+fn refused_trash(_: &Path) -> Result<PathBuf> {
+    Err(error("synthetic OS trash refusal"))
+}
+#[test]
+fn trash_saves_only_target_closes_it_and_invalidates_late_snapshot() {
+    let (mut s, root) = session("trash-target");
+    s.drafts.as_mut().unwrap().trash = Some(test_trash);
+    s.execute("draft.create", &json!({"id":A,"name":"Target"})).unwrap();
+    let path = s.ds().unwrap().path.clone().unwrap();
+    s.execute("shape.rectangle", &json!({"width":71,"height":81})).unwrap();
+    let late = super::super::file::FileSnapshot::of(s.ds().unwrap());
+    let bytes = late.encode().unwrap();
+    s.execute("draft.create", &json!({"id":B,"name":"Keep"})).unwrap();
+    let owner = s.ds().unwrap().uid;
+    s.execute("shape.rectangle", &json!({"width":93,"height":97})).unwrap();
+    s.execute("draft.trash", &json!({"id":A})).unwrap();
+    assert!(Path::new(&path).exists(), "no confirmed intent, no write");
+    let result = s.execute("draft.trash", &json!({"id":A,"confirmed":true})).unwrap();
+    assert_eq!(s.ds().unwrap().uid, owner);
+    assert!(s.ds().unwrap().is_dirty(), "another file is not saved or closed");
+    assert_eq!(s.docs.len(), 1);
+    assert!(!late.save(&mut s, &bytes).unwrap());
+    assert!(!Path::new(&path).exists());
+    let (doc, _) = super::super::file::load(result["trashed"].as_str().unwrap()).unwrap();
+    assert_eq!(doc.nodes().filter(|n| !n.is_page()).count(), 1);
+    assert_eq!(Store::load(root.clone()).entries.len(), 1);
+    assert!(s.execute("draft.trash", &json!({"id":A,"confirmed":true})).is_err());
+    std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+fn trash_platform_or_index_failure_keeps_file_list_and_tab() {
+    let (mut s, root) = session("trash-failure");
+    s.execute("draft.create", &json!({"id":A})).unwrap();
+    let path = s.ds().unwrap().path.clone().unwrap();
+    let uid = s.ds().unwrap().uid;
+    assert!(s.execute("draft.trash", &json!({"id":A,"confirmed":true})).is_err(), "no permanent-delete fallback");
+    s.drafts.as_mut().unwrap().trash = Some(refused_trash);
+    assert!(s.execute("draft.trash", &json!({"id":A,"confirmed":true})).is_err());
+    assert_eq!(Store::load(root.clone()).entries.len(), 1);
+    s.drafts.as_mut().unwrap().trash = Some(test_trash);
+    std::fs::remove_file(root.join("index.json")).unwrap();
+    std::fs::create_dir(root.join("index.json")).unwrap();
+    assert!(s.execute("draft.trash", &json!({"id":A,"confirmed":true})).is_err());
+    assert!(Path::new(&path).is_file());
+    assert_eq!(s.ds().unwrap().uid, uid);
+    assert_eq!(s.drafts.as_ref().unwrap().entries.len(), 1);
+    assert!(!Path::new(&path).with_extension("test-trash").exists());
+    std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+fn damaged_or_missing_draft_does_not_block_other_files_and_forget_is_explicit() {
+    let (mut s, root) = session("missing-damaged");
+    s.execute("draft.create", &json!({"id":A})).unwrap();
+    let path = s.ds().unwrap().path.clone().unwrap();
+    assert!(s.execute("draft.forgetMissing", &json!({"id":A})).is_err());
+    std::fs::write(&path, b"synthetic corrupt file").unwrap();
+    let loaded = Store::load(root.clone());
+    assert!(loaded.problem.is_none());
+    assert_eq!(loaded.entries.len(), 1);
+    let mut other = Session::empty();
+    other.drafts = Some(loaded);
+    assert!(other.execute("file.open", &json!({"path":path})).is_err());
+    assert!(other.docs.is_empty());
+    other.execute("draft.create", &json!({"id":B,"name":"Still works"})).unwrap();
+    std::fs::remove_file(&path).unwrap();
+    other.execute("draft.forgetMissing", &json!({"id":A})).unwrap();
+    assert_eq!(Store::load(root.clone()).entries.len(), 1);
+    assert_eq!(other.doc().unwrap().name, "Still works");
+    std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+fn twenty_six_managed_files_survive_restart_and_recent_eviction() {
+    let (mut s, root) = session("full-list");
+    for n in 1..=26 {
+        s.execute("draft.create", &json!({"id":format!("{n:032x}"),"name":format!("稿件 {n:02}")})).unwrap();
+        s.execute("file.close", &json!({})).unwrap();
+    }
+    assert_eq!(s.prefs.recent_files.len(), 20);
+    let loaded = Store::load(root.clone());
+    assert!(loaded.problem.is_none());
+    assert_eq!(loaded.entries.len(), 26);
+    assert!(loaded.entries.iter().any(|e| e.name == "稿件 01"));
+    std::fs::remove_dir_all(root).unwrap();
+}

@@ -486,6 +486,16 @@ pub fn exists(path: impl AsRef<Path>) -> bool {
     metadata(path).is_ok()
 }
 
+/// A missing directory entry, distinguished from permission or other metadata errors.
+pub fn missing(path: impl AsRef<Path>) -> Result<bool> {
+    let path = path.as_ref();
+    match std::fs::symlink_metadata(allow(path, Access::Read)?) {
+        Ok(_) => Ok(false),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(true),
+        Err(e) => Err(io(path)(e)),
+    }
+}
+
 /// The paths of the entries of folder `path`.
 pub fn read_dir(path: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
     let path = path.as_ref();

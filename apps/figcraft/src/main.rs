@@ -295,12 +295,17 @@ fn main() -> eframe::Result {
     figcraft_ui_egui::i18n::set(&session.prefs.language, figcraft_ui_egui::Services::system_language(&svc).as_deref());
     if args.native_workspace {
         session.drafts = Some(match services::config_dir() {
-            Some(dir) => figcraft_engine::cmd::draft::Store::load(dir.join("Drafts")),
-            None => {
-                figcraft_engine::cmd::draft::Store {
-                    root: Default::default(), entries: Vec::new(), problem: Some("应用本地存储目录不可用".into())
-                }
+            Some(dir) => {
+                let mut store = figcraft_engine::cmd::draft::Store::load(dir.join("Drafts"));
+                store.trash = Some(services::trash_draft);
+                store
             }
+            None => figcraft_engine::cmd::draft::Store {
+                root: Default::default(),
+                entries: Vec::new(),
+                problem: Some("应用本地存储目录不可用".into()),
+                trash: None,
+            },
         });
     }
     let draft_problem = session.drafts.as_ref().and_then(|s| s.problem.clone());

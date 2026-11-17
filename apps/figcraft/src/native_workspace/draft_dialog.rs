@@ -8,6 +8,8 @@ use objc2_foundation::NSString;
 pub(super) enum Intent {
     Rename(String),
     Remove(String),
+    Trash(String),
+    ForgetMissing(String),
     Preview,
 }
 pub(super) struct Dialog {
@@ -48,11 +50,30 @@ impl Dialog {
     }
     pub fn show(&mut self, intent: Intent, name: &str, window: &NSWindow) {
         let rename = matches!(intent, Intent::Rename(_));
-        self.title.setStringValue(&NSString::from_str(if rename { "重命名稿件" } else { "从列表移除稿件？" }));
+        self.title.setStringValue(&NSString::from_str(&match &intent {
+            Intent::Rename(_) => "重命名稿件".into(),
+            Intent::Trash(_) => format!("将“{}”移到废纸篓？", name.chars().take(14).collect::<String>()),
+            Intent::ForgetMissing(_) => "移除失效记录？".into(),
+            _ => "从列表移除稿件？".into(),
+        }));
         self.input.setStringValue(&NSString::from_str(name));
         self.input.setHidden(!rename);
-        self.message.setStringValue(&NSString::from_str(if rename { "" } else { "磁盘上的文件会保留。" }));
-        self.confirm.title(if rename { "保存" } else { "移除" });
+        self.message.setStringValue(&NSString::from_str(if rename {
+            ""
+        } else if matches!(&intent, Intent::Trash(_)) {
+            "可以从系统废纸篓恢复。"
+        } else if matches!(&intent, Intent::ForgetMissing(_)) {
+            "仅移除已不存在的文件记录。"
+        } else {
+            "磁盘上的文件会保留。"
+        }));
+        self.confirm.title(if rename {
+            "保存"
+        } else if matches!(&intent, Intent::Trash(_)) {
+            "移到废纸篓"
+        } else {
+            "移除"
+        });
         self.intent = Some(intent);
         self.view.removeFromSuperview();
         self.parent.addSubview(&self.view);
@@ -127,6 +148,10 @@ impl Dialog {
             "名称不能为空"
         } else if rename {
             ""
+        } else if matches!(self.intent, Some(Intent::Trash(_))) {
+            "可以从系统废纸篓恢复。"
+        } else if matches!(self.intent, Some(Intent::ForgetMissing(_))) {
+            "仅移除已不存在的文件记录。"
         } else {
             "磁盘上的文件会保留。"
         }));

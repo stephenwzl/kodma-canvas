@@ -7,7 +7,7 @@
 | 优先级 | 方向 | 状态与范围 |
 | --- | --- | --- |
 | P1 | Web / Cloudflare | [S004 v1.1](spec/web/004-web-cloudflare/spec.md)图文已更新，待用户确认后才开始 I1；尚未开发 / 部署；先完成浏览器高保真 UI 并经用户确认，再保障登录、稿件管理、云端保存、跨设备与测试。见[架构](docs/kodma/web-architecture.md)、[case](spec/web/004-web-cloudflare/acceptance.md)、[进度](spec/web/004-web-cloudflare/progress.md) |
-| P2 | macOS | [S003](spec/macos/003-drafts-files-ui/spec.md)可独立开始 I1。S001 / S002 已验收关闭 |
+| P2 | macOS | [S003 I1](spec/macos/003-drafts-files-ui/i1-design-and-storage.md)清单已完成，下一步 I2 整窗 UI 还原；S001 / S002 已验收关闭 |
 | 后续 | Agent / 云端 MCP | 暂缓，待基础产品闭环完成后另立规格；不优先开发本地 Agent 产品入口 |
 
 ## 阶段与已有成果
@@ -19,7 +19,7 @@
 | Web 高保真与云端稿件 | P1，规格已建立 | 先 UI，再功能保障；真实登录、云端创建 / 保存 / 列表、跨设备、用户隔离及浏览器本地稿。仅静态托管或下载文件不算完成 |
 | macOS 仅画布与原生承载 | S001 v2 已完成 | 用户验收通过；保留完整运行时的隐藏 / 区域适配路线，跨物理显示比例测试已取消 |
 | macOS 工作区最小闭环 | S002 v1.2 已完成 | 用户验收通过并关闭，实现版本 eedd960a；历史工程检查和限制保留，不作为 Web 验收证据 |
-| macOS 稿件与 UI 完善 | S003 v1.2，P2 | 开发未开始；从原生稿件管理与整窗 UI 开始，独立验收 |
+| macOS 稿件与 UI 完善 | S003 v1.2，P2 | I1 已完成 live 设计核对、实际基线观察与存储映射；下一步 I2，独立验收 |
 
 FigCraft 已有命令、撤销、编辑工具、渲染、格式、协作和 MCP 能力继续保留。Web 复用其完整浏览器运行时，重点是产品 UI、浏览器存储 / 输入与 Cloudflare 云稿；不把原生服务器视为现成 Worker，不为本阶段先建设实时协作或 Agent。评估底层能力仍查阅[引擎基线](docs/engine-status.md)及[组件差距](docs/gaps.md)。
 

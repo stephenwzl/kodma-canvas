@@ -12,7 +12,7 @@ S002 历史交付按用户要求优先还原整窗 UI：首页、导航、标签
 
 S004 当前修订为 **v1.1**：参考 tldraw 的职责分层，每稿 DO + 附属 SQLite 保存文档，R2 只存图片等大资源，复用 FigCraft 增量协议；D1 保持用户 / 目录 / 名额角色。live [架构画板定位](web-architecture.md#live-架构图定位)与规格已同步；本轮只改图文，等待用户确认更新稿后才开始 I1、技术样机或代码，不创建资源、不部署。
 
-macOS 按 [S003](../../spec/macos/003-drafts-files-ui/spec.md) 独立推进，从已验收的 S001 / S002 继续做本地稿件管理和原生 UI。下一步是 I1，无需等待 Web 规格确认。
+macOS 按 [S003](../../spec/macos/003-drafts-files-ui/spec.md) 独立推进，从已验收的 S001 / S002 继续做本地稿件管理和原生 UI。[I1 设计与存储清单](../../spec/macos/003-drafts-files-ui/i1-design-and-storage.md)已完成，下一步 I2 整窗 UI 还原。
 
 当前设计在 [FigCraft Cowork](https://figma.oldiron.work/) 的协作文件中维护（本次 live 核对名称为 `kodama`），文件 ID 为 `e37912c2dd7d1294`。使用已有授权打开该文件；仓库仅记录文件定位、设计规范和进度，不保存邀请 token、截图或设计文件副本。
 

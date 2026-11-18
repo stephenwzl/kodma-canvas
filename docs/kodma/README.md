@@ -1,6 +1,6 @@
 # Kodma 产品设计与工作进度
 
-更新日期：2026-11-18。Kodma 是以稿件为单位的 AI 画布工作区；当前优先 macOS（P1），Web 暂停。当前已完成四页高保真 UI 更新、手绘图标与字标、稿件级成员入口和聚焦原型。技术架构页已补齐端与服务端拓扑、客户端分层和两条 Agent 命令链路。完整 FigCraft 运行时继续保留；macOS 历史阶段采用 UI 隐藏、区域适配和原生承载验证，当前 Web 采用浏览器宿主与 Cloudflare 方案；S001 已由用户验收通过并完成。S002 v1.2 已由用户验收通过并关闭，I1–I5 已接入原生工作区、本地文件、标签、页面 / 图层树及固定设计右栏；完整产品工作区、账户、云端同步和 Agent 套餐仍未完成。
+更新日期：2026-11-18。Kodma 是以稿件为单位的 AI 画布工作区；当前 macOS S005 开发暂缓，Web 暂停。当前已完成四页高保真 UI 更新、手绘图标与字标、稿件级成员入口和聚焦原型。技术架构页已补齐端与服务端拓扑、客户端分层和两条 Agent 命令链路。完整 FigCraft 运行时继续保留；macOS 历史阶段采用 UI 隐藏、区域适配和原生承载验证，当前 Web 采用浏览器宿主与 Cloudflare 方案；S001 已由用户验收通过并完成。S002 v1.2 已由用户验收通过并关闭，I1–I5 已接入原生工作区、本地文件、标签、页面 / 图层树及固定设计右栏；完整产品工作区、账户、云端同步和 Agent 套餐仍未完成。
 
 上市预热：[创业者篇 · 27 秒分镜、10 张 App 高保真画板与试拍进度](founder-storyboard.md)。
 
@@ -12,7 +12,7 @@ S002 历史交付按用户要求优先还原整窗 UI：首页、导航、标签
 
 S004 当前修订为 **v1.2**：参考 tldraw 的职责分层，每稿 DO + 附属 SQLite 保存文档，R2 只存图片等大资源，复用 FigCraft 增量协议；D1 保持用户 / 目录 / 名额角色。live [架构画板定位](web-architecture.md#live-架构图定位)与规格已同步；恢复排期后，先确认图文再开始 I1。
 
-macOS 按 [S003](../../spec/macos/003-drafts-files-ui/spec.md) 独立推进，从已验收的 S001 / S002 继续做本地稿件管理和原生 UI。[I1 设计与存储清单](../../spec/macos/003-drafts-files-ui/i1-design-and-storage.md)已完成；[I2 整窗 UI 与实际截图](../../spec/macos/003-drafts-files-ui/i2-visual-review.md)已由用户确认；[I3 本地稿件创建、命名与保存](../../spec/macos/003-drafts-files-ui/i3-local-drafts.md)已接通并完成工程验证；[I4 列表与文件管理](../../spec/macos/003-drafts-files-ui/i4-file-management.md)完成工程验证并通过用户截图验收；I5 完成缩放、双稿、切页复验及用户系统中文亲验。用户于 2026-11-18 确认结项，下一步制作 Mac 内测包。
+macOS 按 [S003](../../spec/macos/003-drafts-files-ui/spec.md) 独立推进，从已验收的 S001 / S002 继续做本地稿件管理和原生 UI。[I1 设计与存储清单](../../spec/macos/003-drafts-files-ui/i1-design-and-storage.md)已完成；[I2 整窗 UI 与实际截图](../../spec/macos/003-drafts-files-ui/i2-visual-review.md)已由用户确认；[I3 本地稿件创建、命名与保存](../../spec/macos/003-drafts-files-ui/i3-local-drafts.md)已接通并完成工程验证；[I4 列表与文件管理](../../spec/macos/003-drafts-files-ui/i4-file-management.md)完成工程验证并通过用户截图验收；I5 完成缩放、双稿、切页复验及用户系统中文亲验。用户于 2026-11-18 确认结项。下一步是 [S005 Mac Agent](../../spec/macos/005-agent/spec.md)，选用 Rust Pi，支持 Kodma 托管与用户自定义模型端点，原型待评审，开发暂缓。
 
 当前设计在 [FigCraft Cowork](https://figma.oldiron.work/) 的协作文件中维护（本次 live 核对名称为 `kodama`），文件 ID 为 `e37912c2dd7d1294`。使用已有授权打开该文件；仓库仅记录文件定位、设计规范和进度，不保存邀请 token、截图或设计文件副本。
 
@@ -21,6 +21,7 @@ macOS 按 [S003](../../spec/macos/003-drafts-files-ui/spec.md) 独立推进，�
 | 原型 | 早期四页概念稿及未登录侧栏对照；旧图标已更新 |
 | Kodma · 高保真 UI | 首页、开始对话、生成与修改、外部 Agent 四张 1440 × 960 画板；另有聚焦成员视口和单人、多人弹层 |
 | Kodma · Design System | Foundations、Controls、Navigation & Agent、Composition & rules、Iconography、首页控件、协作会话七张规范板 |
+| Kodma · Mac Agent 与统一账号 | 15 张可编辑画板。Agent 对话与消息渲染、自定义端点、Kodma 各产品统一登录三条原型。见 [S005 画板定位](../../spec/macos/005-agent/spec.md#设计与验收) |
 | Kodma · 技术架构 | 端与服务端 · 稿件协作、桌面端 · 分层与调用方向、内置 Agent · 从对话到文档提交、外部 Agent · 从工具调用到用户看见修改 |
 
 用户确认的首页使用暖白底、小写矢量字标、分两行的黑灰无衬线标题、黑色主按钮和手绘人物。三个快捷入口使用天蓝、珊瑚和薄荷绿底板。02–04 复用工作区导航、手绘图标和右侧栏。
@@ -109,7 +110,7 @@ I1 已完成原生框架与真实稿件连接，检查布局、截图、实际�
 | 用户 | 交流位置 | 画布操作 |
 | --- | --- | --- |
 | 已在使用 Agent 的专业用户 | 自己的 Agent | 后续通过云端 MCP 接入 Kodma，具体连接与权限另立规格 |
-| 新手及半专业用户 | App 内置 Agent | 购买 Agent 套餐后，在 App 内交流生成 |
+| 在 Kodma 内创作的用户 | 稿件右侧「Kodma Agent」 | 通过 Kodma 托管或自定义模型端点生成、修改本地画布，首版见 [S005](../../spec/macos/005-agent/spec.md) |
 
 内置 Agent 在稿件右侧交流。外部 Agent 作为协作成员加入，聊天与操作记录由其客户端维护。
 

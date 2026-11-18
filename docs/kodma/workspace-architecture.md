@@ -2,7 +2,7 @@
 
 更新日期：2026-11-17。本文约定保留 FigCraft 完整运行时、接入 macOS 原生宿主时的状态归属与回归场景。状态归属是逻辑职责，不要求拆分现有 FigApp / UiState。四页设计是交互输入，宿主适配、账户与 Agent 接入的实现状态见[产品进度](README.md)。
 
-当前 **Web P1**，实施以 [S004](../../spec/web/004-web-cloudflare/spec.md)和 [Web / Cloudflare 架构](web-architecture.md)为准：首版登录、云端保存、跨设备，UI 优先。**macOS 按 S003 并行推进**，S001 / S002 已有结项不变。本文以下为既有原生工作区与 Agent 链路参考，不作为当前 Web 已实现的声明；Agent 暂缓，未来云端 MCP，本机 attached 路径仅为已有能力说明。
+macOS S001–S003 已结项。[S005 Mac Agent](../../spec/macos/005-agent/spec.md)采用本地 Rust Pi harness，设计原型覆盖对话、端点设置和 Kodma 统一账号，开发暂缓。[Web S004](../../spec/web/004-web-cloudflare/spec.md)暂停。本文保留原生工作区、外部 Agent 和协作链路参考。
 
 ## 状态归属
 

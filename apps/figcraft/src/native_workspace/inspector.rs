@@ -1,5 +1,5 @@
 //! Native field drafts contain a captured runtime target, never an editable document copy.
-use super::{color, label, panel, rect};
+use super::{RIGHT, color, label, panel, rect};
 use figcraft_ui_egui::workspace_properties::{Commit, Field, Inspector, Target};
 use objc2::{MainThreadMarker, MainThreadOnly, Message, rc::Retained};
 use objc2_app_kit::{
@@ -31,18 +31,18 @@ pub(super) struct Properties {
     draft: Option<Draft>,
     context: Option<Retained<NSTextInputContext>>,
     focus: crate::native_canvas::NativeInputFocus,
-    geometry: Option<f64>,
+    geometry: Option<(f64, f64)>,
     window: Retained<NSWindow>,
     canvas: Retained<NSView>,
     gate: KeyGate,
 }
 impl Properties {
     pub(super) fn install(mtm: MainThreadMarker, right: &NSBox, window: &NSWindow, canvas: &NSView) -> Result<Self, String> {
-        let scroll = NSScrollView::initWithFrame(NSScrollView::alloc(mtm), rect(0.0, 0.0, 408.0, 500.0));
+        let scroll = NSScrollView::initWithFrame(NSScrollView::alloc(mtm), rect(0.0, 0.0, RIGHT, 500.0));
         scroll.setHasVerticalScroller(true);
         scroll.setAutohidesScrollers(true);
         scroll.setDrawsBackground(false);
-        let content = NSView::initWithFrame(NSView::alloc(mtm), rect(0.0, 0.0, 408.0, 660.0));
+        let content = NSView::initWithFrame(NSView::alloc(mtm), rect(0.0, 0.0, RIGHT, 660.0));
         // Only the native inspector gets a backing store. Static labels/plates must survive
         // Metal canvas repaints; this does not replace or reparent the original render layer.
         content.setWantsLayer(true);
@@ -210,15 +210,18 @@ impl Properties {
         }
         None
     }
-    pub(super) fn sync(&mut self, view: &Inspector, busy: bool, height: f64, window: &NSWindow) {
+    pub(super) fn sync(&mut self, view: &Inspector, busy: bool, width: f64, height: f64, window: &NSWindow) {
         if self.draft.as_ref().is_some_and(|d| view.target.as_ref() != Some(&d.target)) {
             self.cancel(false);
         }
-        if self.geometry != Some(height) {
-            self.geometry = Some(height);
+        if self.geometry != Some((width, height)) {
+            let height_changed = self.geometry.is_none_or(|(_, old_height)| old_height != height);
+            self.geometry = Some((width, height));
+            let columns = (width - 48.) / (RIGHT - 48.);
+            let align = |x: f64| 24. + (x - 24.) * columns;
             let viewport = (height - 82.0).max(1.0);
-            self.scroll.setFrame(rect(0.0, 0.0, 408.0, viewport));
-            self.content.setFrame(rect(0.0, 0.0, 408.0, 1060.0_f64.max(viewport)));
+            self.scroll.setFrame(rect(0.0, 0.0, width, viewport));
+            self.content.setFrame(rect(0.0, 0.0, width, 1060.0_f64.max(viewport)));
             let top = self.content.frame().size.height;
             for control in &self.controls {
                 let (x, y, w) = match control.field {
@@ -233,6 +236,10 @@ impl Properties {
                     Field::Text => (24., 878., 360.),
                     Field::FontSize => (24., 941., 172.),
                 };
+                let (x, w) = match control.field {
+                    Field::Fill => (x, align(x + w) - x),
+                    _ => (align(x), w * columns),
+                };
                 let plain = matches!(control.field, Field::Name | Field::Fill);
                 control.plate.setHidden(plain);
                 control.plate.setFrame(rect(x, top - y - 42., w, 42.));
@@ -244,21 +251,24 @@ impl Properties {
                 }
             }
             for (label, y) in &self.sections {
-                label.setFrame(rect(24., top - y - 28., 360., 28.));
+                label.setFrame(rect(24., top - y - 28., width - 48., 28.));
             }
             for (rule, y) in &self.rules {
-                rule.setFrame(rect(24., top - y - 1., 360., 1.));
+                rule.setFrame(rect(24., top - y - 1., width - 48., 1.));
             }
-            for (_, label, x, y, w) in &self.observations {
-                label.setFrame(rect(*x, top - y - 26., *w, 26.));
+            for (key, label, x, y, w) in &self.observations {
+                let left = if matches!(*key, "stroke" | "corner") { *x } else { align(*x) };
+                label.setFrame(rect(left, top - y - 26., align(x + w) - left, 26.));
             }
-            self.corner_plate.setFrame(rect(24., top - 387., 172., 42.));
+            self.corner_plate.setFrame(rect(24., top - 387., 172. * columns, 42.));
             self.corner_caption.setFrame(caption_rect(12., top - 384.));
             self.swatch.setFrame(rect(24., top - 508., 24., 24.));
             self.stroke_swatch.setFrame(rect(24., top - 611., 24., 24.));
-            let clip = self.scroll.contentView();
-            clip.scrollToPoint(objc2_foundation::NSPoint::new(0.0, (self.content.frame().size.height - viewport).max(0.0)));
-            self.scroll.reflectScrolledClipView(&clip);
+            if height_changed {
+                let clip = self.scroll.contentView();
+                clip.scrollToPoint(objc2_foundation::NSPoint::new(0.0, (self.content.frame().size.height - viewport).max(0.0)));
+                self.scroll.reflectScrolledClipView(&clip);
+            }
         }
         for control in &self.controls {
             let property = view.fields.iter().find(|p| p.field == control.field);

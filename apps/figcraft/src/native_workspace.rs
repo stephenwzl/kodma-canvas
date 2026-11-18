@@ -27,6 +27,11 @@ mod toolbar;
 const LEFT: f64 = 242.0;
 const TOP: f64 = 84.0;
 const RIGHT: f64 = 408.0;
+
+fn inspector_width(window_width: f64) -> f64 {
+    let fraction = ((window_width - 1200.) / 240.).clamp(0., 1.);
+    336. + fraction * (RIGHT - 336.)
+}
 // canvas/selection: editor overlay only, never an object paint or serialized property.
 const CANVAS_SELECTION: egui::Color32 = egui::Color32::from_rgb(0x67, 0x38, 0xef);
 
@@ -78,13 +83,13 @@ impl Host {
         add_labels(&right, &[&design])?;
         let properties = inspector::Properties::install(mtm, &right, &window, &canvas)?;
         add_labels(&home, &[&greeting, &headline])?;
-        let controls = home::Controls::install(mtm, &left, &top, &home, &window, &canvas)?;
         let tabs = tabs::Tabs::install(mtm, &top, alert)?;
         // Add as siblings of the original rendering view's contents, never its replacement.
         for view in [&*left, &*top, &*right, &*home] {
             canvas.addSubview(view);
         }
         let toolbar = toolbar::Toolbar::install(mtm, &canvas)?;
+        let controls = home::Controls::install(mtm, &left, &top, &window, &canvas)?;
         window.setAutorecalculatesKeyViewLoop(true);
         window.recalculateKeyViewLoop();
         window.makeFirstResponder(Some(&canvas));
@@ -164,6 +169,7 @@ impl Host {
         let bounds = self.canvas.bounds();
         let w = bounds.size.width;
         let h = bounds.size.height;
+        let right = inspector_width(w);
         // Size parents before child scroll views: AppKit otherwise clamps their initial
         // top offset against a zero-sized viewport and opens the inspector at its bottom.
         if self.geometry != Some((w, h, snapshot.home)) {
@@ -173,7 +179,7 @@ impl Host {
             // Convert only the panel origins, preserving AppKit's native text coordinates.
             let (top_y, body_y) = panel_origins(self.canvas.isFlipped(), h);
             self.top.setFrame(rect(LEFT, top_y, (w - LEFT).max(0.0), TOP));
-            self.right.setFrame(rect(w - RIGHT, body_y, RIGHT, (h - TOP).max(0.0)));
+            self.right.setFrame(rect(w - right, body_y, right, (h - TOP).max(0.0)));
             self.home.setFrame(rect(LEFT, body_y, (w - LEFT).max(0.0), (h - TOP).max(0.0)));
             self.right.setHidden(snapshot.home);
             self.home.setHidden(!snapshot.home);
@@ -198,18 +204,18 @@ impl Host {
         );
         self.navigation.sync(&snapshot, w, h);
         self.hero.layout(w - LEFT, h - TOP);
-        self.toolbar.sync(&snapshot, w, h, self.canvas.isFlipped());
+        self.toolbar.sync(&snapshot, w - LEFT - right, h, self.canvas.isFlipped());
         self.tabs.sync(&snapshot, (w - LEFT).max(0.0));
-        self.properties.sync(&inspector, snapshot.busy, (h - TOP).max(0.0), &self.window);
+        self.properties.sync(&inspector, snapshot.busy, right, (h - TOP).max(0.0), &self.window);
         let busy = snapshot.busy;
         CanvasHost {
             accent: Some(CANVAS_SELECTION),
             left_inset: LEFT as f32,
             top_inset: TOP as f32,
-            right_inset: RIGHT as f32,
+            right_inset: right as f32,
             respect_home: true,
             keyboard: canvas_keyboard(
-                self.window.isKeyWindow() && !busy,
+                self.window.isKeyWindow() && !busy && !self.controls.modal(),
                 self.window.firstResponder().is_some_and(|r| std::ptr::eq::<NSResponder>(&*r, &**self.canvas)),
             ),
         }
@@ -281,7 +287,15 @@ fn canvas_keyboard(key_window: bool, canvas_responder: bool) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{canvas_keyboard, panel_origins};
+    use super::{canvas_keyboard, inspector_width, panel_origins};
+
+    #[test]
+    fn narrow_and_standard_windows_match_the_designed_inspector_widths() {
+        assert_eq!(inspector_width(1200.), 336.);
+        assert_eq!(inspector_width(1320.), 372.);
+        assert_eq!(inspector_width(1440.), 408.);
+        assert_eq!(inspector_width(1920.), 408.);
+    }
     #[test]
     fn a_picker_key_window_keeps_keys_out_of_the_underlying_canvas() {
         assert!(!canvas_keyboard(false, true));

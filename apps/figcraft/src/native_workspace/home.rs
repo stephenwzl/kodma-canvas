@@ -45,14 +45,7 @@ pub(super) struct Controls {
 }
 
 impl Controls {
-    pub(super) fn install(
-        mtm: MainThreadMarker,
-        left: &NSBox,
-        top: &NSBox,
-        home_panel: &NSBox,
-        window: &NSWindow,
-        canvas: &NSView,
-    ) -> Result<Self, String> {
+    pub(super) fn install(mtm: MainThreadMarker, left: &NSBox, top: &NSBox, window: &NSWindow, canvas: &NSView) -> Result<Self, String> {
         let left_content = left.contentView().ok_or("missing navigation")?;
         let top_content = top.contentView().ok_or("missing tabs")?;
         let new = style::Button::new(mtm, &left_content, "新建稿件", 0xffffff, Some(0xdfdcd8), 12.);
@@ -80,7 +73,7 @@ impl Controls {
         left_content.addSubview(&search);
         let empty = super::label(mtm, "无匹配稿件", 14., 0x736e69);
         left_content.addSubview(&empty);
-        let dialog = super::draft_dialog::Dialog::new(mtm, &*home_panel.contentView().ok_or("missing home")?)?;
+        let dialog = super::draft_dialog::Dialog::new(mtm, canvas)?;
         let error = NSTextField::wrappingLabelWithString(&NSString::new(), mtm);
         error.setFont(Some(&NSFont::systemFontOfSize(13.0)));
         error.setTextColor(Some(&color(0xa83030)));
@@ -204,6 +197,9 @@ impl Controls {
         {
             context.activate();
         }
+        if !is_home && self.dialog.editing() {
+            self.dialog.hide(&self.window, &self.canvas);
+        }
         if is_home
             && !busy
             && let Some((kind, path)) = self.review_action.take()
@@ -224,7 +220,7 @@ impl Controls {
         let recents: Vec<_> = recents.into_iter().filter(|file| matches_query(&file.name, &query)).collect();
         self.empty.setHidden(!is_home || query.trim().is_empty() || !recents.is_empty());
         self.empty.setFrame(rect(36., height - 310., 180., 28.));
-        self.dialog.layout(width - 242., height - 84.);
+        self.dialog.layout(width, height);
         let changed = self.rows.iter().map(|r| &r.file).ne(recents.iter());
         if changed && let Some(mtm) = MainThreadMarker::new() {
             self.rows.rebind(

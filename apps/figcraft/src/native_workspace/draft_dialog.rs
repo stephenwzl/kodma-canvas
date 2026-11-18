@@ -1,6 +1,6 @@
 //! Native name/confirmation drafts capture a file path, never a changing list position.
-use super::{color, label, panel, rect, style};
-use objc2::{MainThreadMarker, Message, rc::Retained};
+use super::{LEFT, TOP, color, label, panel, rect, style};
+use objc2::{MainThreadMarker, rc::Retained};
 use objc2_app_kit::{NSApplication, NSBox, NSEventType, NSTextField, NSTextInputClient, NSTextView, NSView, NSWindow};
 use objc2_foundation::NSString;
 
@@ -13,8 +13,8 @@ pub(super) enum Intent {
     Preview,
 }
 pub(super) struct Dialog {
+    scrim: Retained<NSBox>,
     view: Retained<NSBox>,
-    parent: Retained<NSView>,
     title: Retained<NSTextField>,
     input: Retained<NSTextField>,
     message: Retained<NSTextField>,
@@ -25,6 +25,9 @@ pub(super) struct Dialog {
 }
 impl Dialog {
     pub fn new(mtm: MainThreadMarker, parent: &NSView) -> Result<Self, String> {
+        let scrim = panel(mtm, 0x231e1b);
+        scrim.setFillColor(&color(0x231e1b).colorWithAlphaComponent(53. / 255.));
+        let scrim_content = scrim.contentView().ok_or("missing draft dialog scrim")?;
         let view = panel(mtm, 0xffffff);
         view.setCornerRadius(20.);
         view.setBorderWidth(1.);
@@ -44,9 +47,10 @@ impl Dialog {
         cancel.control.setKeyEquivalent(&NSString::from_str("\u{1b}"));
         confirm.control.setKeyEquivalent(&NSString::from_str("\r"));
         confirm.control.setContentTintColor(Some(&color(0xffffff)));
-        parent.addSubview(&view);
-        view.setHidden(true);
-        Ok(Self { view, parent: parent.retain(), title, input, message, cancel, confirm, intent: None, gate: Default::default() })
+        scrim_content.addSubview(&view);
+        scrim.setHidden(true);
+        parent.addSubview(&scrim);
+        Ok(Self { scrim, view, title, input, message, cancel, confirm, intent: None, gate: Default::default() })
     }
     pub fn show(&mut self, intent: Intent, name: &str, window: &NSWindow) {
         let rename = matches!(intent, Intent::Rename(_));
@@ -75,11 +79,11 @@ impl Dialog {
             "移除"
         });
         self.intent = Some(intent);
-        self.view.removeFromSuperview();
-        self.parent.addSubview(&self.view);
-        self.view.setHidden(false);
+        self.scrim.setHidden(false);
         if rename {
             window.makeFirstResponder(Some(&self.input));
+        } else {
+            window.makeFirstResponder(None);
         }
     }
     /// I2 state fixtures: render the real native controls without performing I3/I4 storage work.
@@ -99,12 +103,13 @@ impl Dialog {
         }));
         self.confirm.title(if kind == "trash" { "移到废纸篓" } else { "重试" });
         self.confirm.enabled(false);
-        self.parent.addSubview(&self.view);
-        self.view.setHidden(false);
+        self.scrim.setHidden(false);
     }
     pub fn layout(&self, width: f64, height: f64) {
-        let w = 620.0_f64.min((width - 48.).max(280.));
-        self.view.setFrame(rect((width - w) / 2., (height - 300.) / 2., w, 300.));
+        self.scrim.setFrame(rect(0., 0., width, height));
+        let body_width = width - LEFT;
+        let w = 620.0_f64.min((body_width - 48.).max(280.));
+        self.view.setFrame(rect(LEFT + (body_width - w) / 2., (height - TOP - 300.) / 2., w, 300.));
         self.title.setFrame(rect(28., 230., w - 56., 40.));
         self.input.setFrame(rect(28., 154., w - 56., 42.));
         self.message.setFrame(rect(28., 112., w - 56., 36.));
@@ -118,7 +123,7 @@ impl Dialog {
         self.input.abortEditing();
         window.makeFirstResponder(Some(canvas));
         self.intent = None;
-        self.view.setHidden(true);
+        self.scrim.setHidden(true);
     }
     pub fn poll(&mut self, window: &NSWindow, canvas: &NSView) -> Option<(Intent, String)> {
         let marked = self.input.currentEditor().is_some_and(|e| e.downcast_ref::<NSTextView>().is_some_and(|v| v.hasMarkedText()));
@@ -164,5 +169,11 @@ impl Dialog {
             return Some((intent, name));
         }
         None
+    }
+}
+
+impl Drop for Dialog {
+    fn drop(&mut self) {
+        self.scrim.removeFromSuperview();
     }
 }

@@ -81,6 +81,11 @@ impl Button {
             icon.setFrame(frame);
         }
     }
+    pub fn tooltip(&self, text: &str) {
+        let text = NSString::from_str(text);
+        self.control.setToolTip(Some(&text));
+        self.hit.setToolTip(Some(&text));
+    }
     pub fn enabled(&self, value: bool) {
         self.control.setEnabled(value);
         self.hit.setEnabled(value);

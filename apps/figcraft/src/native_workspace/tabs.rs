@@ -183,10 +183,10 @@ impl Tabs {
             row.select.control.setFont(Some(&font));
             row.underline.setHidden(true);
             row.underline.setFrame(rect(index as f64 * 229. + 16., 9., 182., 3.));
-            row.select.control.setToolTip(Some(&NSString::from_str(&doc.name)));
-            row.select.frame(index as f64 * 229.0, 9.0, 214.0, 42.0);
+            row.select.tooltip(&doc.name);
+            row.select.frame(index as f64 * 229.0, 9.0, 183.0, 42.0);
             row.close.setFrame(rect(index as f64 * 229.0 + 183.0, 9.0, 30.0, 42.0));
-            row.select.control.setEnabled(!snapshot.busy);
+            row.select.enabled(!snapshot.busy);
             row.close.setEnabled(!snapshot.busy);
             if active == Some(row.uid) && (active != self.active || ids_changed) {
                 self.content.scrollRectToVisible(rect(index as f64 * 220.0, 0.0, 220.0, 58.0));

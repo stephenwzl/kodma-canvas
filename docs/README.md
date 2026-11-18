@@ -1,8 +1,8 @@
 # Kodma 开发文档
 
-从[产品设计与进度](kodma/README.md)了解稿件、画布和 Agent 如何交互。当前优先阅读 [Web / Cloudflare 架构](kodma/web-architecture.md)；macOS 开发参考[工作区架构](kodma/workspace-architecture.md)和[原生承载方案](kodma/canvas-editor-extraction.md)，当前里程碑见[产品路线图](../ROADMAP.md)。
+从[产品设计与进度](kodma/README.md)了解稿件、画布和 Agent 如何交互。当前 macOS 开发参考[工作区架构](kodma/workspace-architecture.md)和[原生承载方案](kodma/canvas-editor-extraction.md)，当前里程碑见[产品路线图](../ROADMAP.md)。
 
-分阶段的实施规格、验收标准和迭代记录见 [spec 目录](../spec/README.md)。当前阶段为 **P1 [S004：Web 工作区与 Cloudflare 云端稿件](../spec/web/004-web-cloudflare/spec.md)**，当前 v1.1 图文待用户确认，确认前不开始 I1 或部署；macOS [S003](../spec/macos/003-drafts-files-ui/spec.md)可独立开始 I1，S001 / S002 已验收关闭。
+分阶段的实施规格、验收标准和迭代记录见 [spec 目录](../spec/README.md)。当前优先推进 [macOS S003](../spec/macos/003-drafts-files-ui/spec.md)收尾，S001 / S002 已验收关闭。[Web S004](../spec/web/004-web-cloudflare/spec.md)暂停。
 
 以下资料描述 Kodma 使用的 FigCraft 技术组件。命令、crate、包名和文件后缀与现有实现一致；兼容性数据对应上游编辑器的评估日期。
 

@@ -12,7 +12,7 @@ S002 历史交付按用户要求优先还原整窗 UI：首页、导航、标签
 
 S004 当前修订为 **v1.2**：参考 tldraw 的职责分层，每稿 DO + 附属 SQLite 保存文档，R2 只存图片等大资源，复用 FigCraft 增量协议；D1 保持用户 / 目录 / 名额角色。live [架构画板定位](web-architecture.md#live-架构图定位)与规格已同步；恢复排期后，先确认图文再开始 I1。
 
-macOS 按 [S003](../../spec/macos/003-drafts-files-ui/spec.md) 独立推进，从已验收的 S001 / S002 继续做本地稿件管理和原生 UI。[I1 设计与存储清单](../../spec/macos/003-drafts-files-ui/i1-design-and-storage.md)已完成；[I2 整窗 UI 与实际截图](../../spec/macos/003-drafts-files-ui/i2-visual-review.md)已由用户确认；[I3 本地稿件创建、命名与保存](../../spec/macos/003-drafts-files-ui/i3-local-drafts.md)已接通并完成工程验证；[I4 列表与文件管理](../../spec/macos/003-drafts-files-ui/i4-file-management.md)完成工程和实际文件验证，待截图验收；I5 已复验缩放、双稿与切页，待系统中文与整体亲验。
+macOS 按 [S003](../../spec/macos/003-drafts-files-ui/spec.md) 独立推进，从已验收的 S001 / S002 继续做本地稿件管理和原生 UI。[I1 设计与存储清单](../../spec/macos/003-drafts-files-ui/i1-design-and-storage.md)已完成；[I2 整窗 UI 与实际截图](../../spec/macos/003-drafts-files-ui/i2-visual-review.md)已由用户确认；[I3 本地稿件创建、命名与保存](../../spec/macos/003-drafts-files-ui/i3-local-drafts.md)已接通并完成工程验证；[I4 列表与文件管理](../../spec/macos/003-drafts-files-ui/i4-file-management.md)完成工程验证并通过用户截图验收；I5 完成缩放、双稿、切页复验及用户系统中文亲验。用户于 2026-11-18 确认结项，下一步制作 Mac 内测包。
 
 当前设计在 [FigCraft Cowork](https://figma.oldiron.work/) 的协作文件中维护（本次 live 核对名称为 `kodama`），文件 ID 为 `e37912c2dd7d1294`。使用已有授权打开该文件；仓库仅记录文件定位、设计规范和进度，不保存邀请 token、截图或设计文件副本。
 

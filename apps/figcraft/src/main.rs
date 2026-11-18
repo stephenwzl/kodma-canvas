@@ -345,8 +345,7 @@ fn main() -> eframe::Result {
             .with_min_inner_size([1200.0, 600.0])
             .with_fullsize_content_view(true)
             .with_title_shown(false)
-            .with_titlebar_shown(false)
-            .with_titlebar_buttons_shown(false);
+            .with_titlebar_shown(false);
     }
     // Who draws the window frame is decided once, before the viewport is built, by the shared
     // craft-window crate (the rest of the Craft suite uses it too). On macOS the system frame is

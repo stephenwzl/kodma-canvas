@@ -6,7 +6,7 @@
 
 | 优先级 | 方向 | 状态与范围 |
 | --- | --- | --- |
-| 优先 | macOS · 统一账号 | 按 [Kodma Account 接入指南](https://git.oldiron.work/old_iron_works/kodma-account/src/branch/main/docs/integration.md)接入现有 OIDC 服务。先在测试环境确认登录、回跳和 App 会话 |
+| 优先 | macOS · 统一账号 | [S006](spec/macos/006-kodma-account/spec.md) v0.1 规格已确认。先核对回跳方式和测试客户端登记参数 |
 | 挂起 | macOS · Agent | [S005 Mac Agent](spec/macos/005-agent/spec.md)保留设计原型，I1 尚未启动 |
 | 暂停 | Web / Cloudflare | [S004 v1.2](spec/web/004-web-cloudflare/spec.md)保留，I1 尚未启动。恢复后先确认架构图与规格 |
 | 后续 | 外部 Agent / 云端 MCP | 独立客户端的接入与协作另立规格 |

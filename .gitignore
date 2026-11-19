@@ -5,6 +5,7 @@ plans/
 /target-*/
 /plugins/target/
 /dist/
+/packaging/macos/*.provisionprofile
 /corpus/
 /log/
 .DS_Store

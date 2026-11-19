@@ -66,3 +66,16 @@ Canvas API 对接推理网关。会员和额度由 Account 内的独立模块按
 2026-11-19 · 用户已验收第二阶段。使用 macOS 27.0.1 arm64 原生 Canvas、隔离稿件、Canvas API、推理网关、Account D1 和模拟模型 SSE。已通过 `--validate-kodma-hosted-edit` 发起工具调用，指定稿件填充改为 `#7C3AED`，前台另一份稿件保持原样。单次撤销、重做及保存重开均通过。模型工具调用与工具回执续轮分别结算 20、26 单位，预留归零。
 
 联验复用 Canvas 的控制通道和引擎命令，使用测试访问令牌及模型响应。交互式 Agent 面板、Rust Pi 和真实模型或商店接入仍由各自阶段验收。 [Account 验证记录](../../../../kodma-account/docs/kodma-ai-membership-spec.md#第二阶段本地验证)
+
+## Apple 沙盒与开发签名
+
+App Store Connect 的 macOS 草稿名为 **Kodma Canvas**，Apple ID 为 `6836667078`，Bundle ID 为 `app.kodma.canvas`。自动续订测试商品 `app.kodma.canvas.sandbox.monthly` 属于 `Kodma AI` 订阅群组，覆盖全部 175 个国家或地区，并自动覆盖未来新增地区。美元基准价 USD 0.99 是沙盒测试占位价。 [App Store Connect 订阅设置](https://appstoreconnect.apple.com/apps/6836667078/distribution/subscriptions/6836667418)
+
+开发签名使用团队 `WBTHC22CU7` 的 Apple Development 钥匙串身份。将 Apple 签发的描述文件放在 `packaging/macos/Canvas_macOS_Sandbox_Development.provisionprofile`。该文件包含注册测试设备的标识，由 Git 忽略。先用 `security find-identity -v -p codesigning` 查找团队开发证书的 SHA-1，再以已有 Canvas 构建生成开发签名副本。
+
+```sh
+bash packaging/macos/sign-canvas-development.sh \
+  dist/KodmaCanvas.app dist/CanvasSandbox.app "$CANVAS_DEVELOPMENT_IDENTITY"
+```
+
+开发签名已通过严格验签。App 和订阅仍为草稿。StoreKit 沙盒商品可见性、购买及 RevenueCat 权益留待联验。

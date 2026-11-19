@@ -29,6 +29,8 @@ mod graphics;
 #[cfg(target_os = "macos")]
 mod kodma_account;
 #[cfg(target_os = "macos")]
+mod kodma_hosted_smoke;
+#[cfg(target_os = "macos")]
 mod native_canvas;
 #[cfg(target_os = "macos")]
 mod native_workspace;
@@ -203,6 +205,16 @@ fn main() -> eframe::Result {
         std::process::exit(i32::from(result.is_err()));
     }
     let args: Vec<String> = std::env::args().skip(1).collect();
+    #[cfg(target_os = "macos")]
+    if let Some((flag, rest)) = args.split_first()
+        && flag == "--validate-kodma-hosted-edit"
+    {
+        if let Err(error) = kodma_hosted_smoke::run(rest) {
+            eprintln!("Kodma hosted validation: {error}");
+            std::process::exit(1);
+        }
+        return Ok(());
+    }
     if args.iter().any(|a| a == "--version" || a == "-V") {
         println!(
             "FigCraft {}{}",

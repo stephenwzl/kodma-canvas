@@ -1,6 +1,6 @@
 # S005 · macOS Kodma Agent
 
-更新日期 2026-11-18。版本 v0.2，设计稿已绘制，待评审。开发暂缓，I1 尚未启动。以前置 [S003 结项](../003-drafts-files-ui/spec.md)为基线，恢复开发需另行确认。
+更新日期 2026-11-19。版本 v0.2，设计稿已绘制。S005 挂起，I1 尚未启动。macOS 优先[接入现有 Kodma Account](../README.md)。恢复 Agent 开发需另行确认，基线为已结项的 [S003](../003-drafts-files-ui/spec.md)。
 
 ## 目标
 

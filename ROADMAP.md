@@ -1,12 +1,13 @@
 # Kodma 路线图
 
-更新日期：2026-11-18。**Mac S005 开发暂缓，Web S004 继续暂停。** Mac S003 已结项，S005 已绘制 Agent 对话、自定义端点和 Kodma 统一账号原型。
+更新日期：2026-11-19。**macOS 下一步优先接入现有 Kodma Account。S005 Agent 挂起，Web S004 继续暂停。**
 
 ## 当前优先级
 
 | 优先级 | 方向 | 状态与范围 |
 | --- | --- | --- |
-| 暂缓开发 | macOS | [S003](spec/macos/003-drafts-files-ui/progress.md)已验收结项。[S005 Mac Agent](spec/macos/005-agent/spec.md)设计稿待评审，I1 尚未启动 |
+| 优先 | macOS · 统一账号 | 按 [Kodma Account 接入指南](https://git.oldiron.work/old_iron_works/kodma-account/src/branch/main/docs/integration.md)接入现有 OIDC 服务。先在测试环境确认登录、回跳和 App 会话 |
+| 挂起 | macOS · Agent | [S005 Mac Agent](spec/macos/005-agent/spec.md)保留设计原型，I1 尚未启动 |
 | 暂停 | Web / Cloudflare | [S004 v1.2](spec/web/004-web-cloudflare/spec.md)保留，I1 尚未启动。恢复后先确认架构图与规格 |
 | 后续 | 外部 Agent / 云端 MCP | 独立客户端的接入与协作另立规格 |
 
@@ -27,6 +28,7 @@ FigCraft 已有命令、撤销、编辑工具、渲染、格式、协作和 MCP 
 
 | 日期 | 记录 |
 | --- | --- |
+| 2026-11-19 | macOS 改为优先接入现有 Kodma Account，S005 Agent 挂起。 |
 | 2026-11-18 | S005 补齐 Agent 对话、自定义端点和 Kodma 统一账号原型。用户暂缓开发。 |
 | 2026-11-18 | 用户验收通过 macOS S003。Mac 先做 Agent，选定 Rust Pi，S005 待验收规格。 |
 | 2026-11-18 | 用户暂停 Web S004，当前聚焦 macOS S003 收尾。 |

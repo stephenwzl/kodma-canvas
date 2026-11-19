@@ -15,6 +15,8 @@ pub struct Args {
     pub native_canvas: bool,
     /// S002 product workspace in the existing macOS window.
     pub native_workspace: bool,
+    /// Opt in to the one-shot S006 test account login.
+    pub validate_kodma_account: bool,
     /// `--control <port>` (or `--control=<port>`): the JSON-lines control server.
     pub control: Option<u16>,
     pub files: Vec<String>,
@@ -85,6 +87,8 @@ pub fn parse(args: &[String]) -> Args {
         } else if a == "--native-canvas" {
             out.canvas_only = true;
             out.native_canvas = true;
+        } else if a == "--validate-kodma-account" {
+            out.validate_kodma_account = true;
         } else if flag == "--control" {
             out.control = inline.or_else(|| it.next().cloned()).and_then(|p| p.parse().ok());
         } else if is_invite(a) {

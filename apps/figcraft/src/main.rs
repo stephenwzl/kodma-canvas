@@ -27,6 +27,8 @@ mod control_server;
 mod gamepad;
 mod graphics;
 #[cfg(target_os = "macos")]
+mod kodma_account;
+#[cfg(target_os = "macos")]
 mod native_canvas;
 #[cfg(target_os = "macos")]
 mod native_workspace;
@@ -65,6 +67,8 @@ struct App {
     native_canvas: Option<native_canvas::Host>,
     #[cfg(target_os = "macos")]
     native_workspace: Option<native_workspace::Host>,
+    #[cfg(target_os = "macos")]
+    validate_kodma_account: bool,
     queue: Arc<Mutex<Vec<ControlRequest>>>,
     ctx_slot: Arc<Mutex<Option<egui::Context>>>,
     /// The window title last sent: a viewport command asks for another frame, so it's only sent
@@ -84,6 +88,10 @@ impl eframe::App for App {
     /// guarded background work, poll macOS open events, handle close requests and title
     /// changes, and schedule recovery repaints on the app clock.
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        #[cfg(target_os = "macos")]
+        if std::mem::take(&mut self.validate_kodma_account) {
+            kodma_account::start_validation();
+        }
         #[cfg(target_os = "macos")]
         if let Some(host) = &mut self.native_canvas {
             let mut policy = host.sync();
@@ -194,7 +202,6 @@ fn main() -> eframe::Result {
     if let Some(result) = craft_update::self_update::finish(&figcraft_ui_egui::UPDATE_APP, &std::env::args_os().skip(1).collect::<Vec<_>>()) {
         std::process::exit(i32::from(result.is_err()));
     }
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn")).init();
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "--version" || a == "-V") {
         println!(
@@ -205,6 +212,16 @@ fn main() -> eframe::Result {
         return Ok(());
     }
     let args = args::parse(&args);
+    let mut logger = env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn"));
+    if args.validate_kodma_account {
+        // HTTP trace logs can include sensitive headers. The account probe logs stages itself.
+        logger.filter_module("ureq", log::LevelFilter::Off).filter_module("ureq_proto", log::LevelFilter::Off);
+    }
+    logger.init();
+    if args.validate_kodma_account && (!cfg!(target_os = "macos") || !args.native_workspace) {
+        eprintln!("FigCraft: --validate-kodma-account requires --native-workspace on macOS");
+        std::process::exit(2);
+    }
     if (args.native_canvas || args.native_workspace) && !cfg!(target_os = "macos") {
         eprintln!("FigCraft: native canvas and workspace modes require macOS");
         std::process::exit(2);
@@ -418,6 +435,8 @@ fn main() -> eframe::Result {
                 native_canvas,
                 #[cfg(target_os = "macos")]
                 native_workspace,
+                #[cfg(target_os = "macos")]
+                validate_kodma_account: args.validate_kodma_account,
                 queue,
                 ctx_slot,
                 title: String::new(),

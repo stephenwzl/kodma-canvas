@@ -6,7 +6,7 @@
 
 | 优先级 | 方向 | 状态与范围 |
 | --- | --- | --- |
-| 优先 | macOS · 统一账号 | [S006](spec/macos/006-kodma-account/spec.md) v0.1 规格已确认。先核对回跳方式和测试客户端登记参数 |
+| 优先 | macOS · 统一账号 | [S006](spec/macos/006-kodma-account/spec.md) I1 已验收。I2 接入原生账号界面与钥匙串会话恢复 |
 | 挂起 | macOS · Agent | [S005 Mac Agent](spec/macos/005-agent/spec.md)保留设计原型，I1 尚未启动 |
 | 暂停 | Web / Cloudflare | [S004 v1.2](spec/web/004-web-cloudflare/spec.md)保留，I1 尚未启动。恢复后先确认架构图与规格 |
 | 后续 | 外部 Agent / 云端 MCP | 独立客户端的接入与协作另立规格 |

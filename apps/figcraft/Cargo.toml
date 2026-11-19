@@ -55,6 +55,14 @@ zbus = { version = "5", default-features = false, features = ["async-io", "block
 # unsafe, which the workspace forbids). Pinned exactly: review the diff before bumping.
 [target.'cfg(target_os = "macos")'.dependencies]
 fmv-macos-events = "=0.1.0"
+# Safe wrapper for ASWebAuthenticationSession's macOS 14 custom-scheme API.
+frust-auth-session = "=0.6.6"
+base64 = { workspace = true }
+ring = "0.17"
+serde = { workspace = true }
+sha2 = { workspace = true }
+ureq = "3.5"
+url = "2"
 # Paste reads the clipboard's public.png as is, keeping the screen density a screenshot records.
 objc2 = { version = "0.6", default-features = false, features = ["std"] }
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSPasteboard", "NSApplication", "NSWindow", "NSView", "NSResponder", "NSControl", "NSTextField", "NSSlider", "NSCell", "NSPopUpButton", "NSTextInputContext", "NSText", "NSMenu", "NSMenuItem", "NSBox", "NSColor", "NSFont", "NSButton", "NSButtonCell", "NSScrollView", "NSClipView", "NSTextView", "NSTextInputClient", "NSAppearance", "NSEvent", "NSImage", "NSImageView", "NSParagraphStyle"] }

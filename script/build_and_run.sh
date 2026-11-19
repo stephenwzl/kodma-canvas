@@ -56,6 +56,11 @@ cat > "$TASK_CONTENTS/Info.plist" <<'PLIST'
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>NSPrincipalClass</key><string>NSApplication</string>
 <key>NSHighResolutionCapable</key><true/>
+<key>CFBundleURLTypes</key><array><dict>
+<key>CFBundleURLName</key><string>app.kodma.canvas</string>
+<key>CFBundleTypeRole</key><string>Viewer</string>
+<key>CFBundleURLSchemes</key><array><string>app.kodma.canvas</string></array>
+</dict></array>
 </dict></plist>
 PLIST
 # Bind the copied executable to this local bundle; the linker's ad-hoc signature has no bundle

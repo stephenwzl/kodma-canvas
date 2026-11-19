@@ -1,6 +1,6 @@
 # S006 · macOS 接入 Kodma Account
 
-更新日期：2026-11-19。版本 v0.1，规格已由用户确认。以已验收的 [S003 本地工作区](../003-drafts-files-ui/spec.md)为基线，I1 先核对系统版本、回跳方式和客户端登记参数。[S005 Agent](../005-agent/spec.md)继续挂起，[Web S004](../../web/004-web-cloudflare/spec.md)继续暂停。
+更新日期：2026-11-19。版本 v0.1，规格已由用户确认，I1 已验收通过。以已验收的 [S003 本地工作区](../003-drafts-files-ui/spec.md)为基线，进入 I2。[S005 Agent](../005-agent/spec.md)继续挂起，[Web S004](../../web/004-web-cloudflare/spec.md)继续暂停。
 
 ## 目标与范围
 
@@ -32,7 +32,7 @@
 4. **回跳和身份**。仅处理匹配当前登录流程、登记 URI、`state` 与 `iss` 的回跳。校验 ID Token 的 ES256 签名、`iss`、`aud`、有效期与本次 `nonce`，并按服务契约核对访问令牌的受众和 `sub`。以可信的 `sub` 作为测试环境的 Kodma 用户 ID。邮箱仅用于登录和显示。取消、超时、退出或重试后，使旧回调和迟到响应失效。
 5. **会话生命周期**。刷新凭据按 issuer、客户端与当前会话存入 macOS 钥匙串。每个会话串行刷新，成功后保存轮换凭据。刷新结果不明时避免反复发送旧凭据。退出与刷新协调，防止旧请求恢复本机已退出的会话。日志只记录产品、环境、阶段、请求 ID 和错误类别。截图与日志都避开邮箱验证码、授权码、回调完整 URL、Cookie 和令牌。
 
-2026-11-19 已读取公网测试 Discovery，确认 issuer、四个端点和 PKCE S256。服务方已用两个网页测试客户端验证真实邮箱收码、登录复用与会话撤销。Canvas macOS 客户端已登记到测试环境，公网授权请求可打开账号登录页。账号服务的隔离测试已验证自定义 scheme 的授权码兑换和刷新。Mac 原生回跳及钥匙串仍待实施和验收。
+2026-11-19 已读取公网测试 Discovery，确认 issuer、四个端点和 PKCE S256。服务方已用两个网页测试客户端验证真实邮箱收码、登录复用与会话撤销。Canvas macOS 客户端已登记到测试环境，公网授权请求可打开账号登录页。账号服务的隔离测试已验证自定义 scheme 的授权码兑换和刷新。Mac 原生回跳已通过 I1 验收，钥匙串留到 I2。
 
 ## 实施顺序与验收
 
@@ -43,3 +43,9 @@
 | I3 · 测试环境联验 | Mac 和现有 Frame 网页测试客户端用同一浏览器登录，核对同一个 Kodma 用户 ID、登录复用和独立会话。账号网站撤销 Mac 会话后，Mac 无法继续刷新，Frame 仍能刷新。验证 Mac 在线退出、离线退出、退出与刷新重叠。用隔离本地稿件验证未登录、退出和换账号后仍可打开、编辑、保存和重启恢复。 |
 
 用户亲验主线为「打开 Mac 测试构建 → 登录 → 浏览器收码或复用会话 → 返回 Canvas → 重启恢复 → 退出」。交付实际原生窗口截图、测试环境和构建版本、已脱敏的用例结果。Frame 网页对照结果记录为协议与会话隔离验证，双原生验证留待 Frame 接入后。
+
+### I1 验收记录
+
+通过 `./script/build_and_run.sh --workspace --validate-kodma-account` 启动一次验证。每次启动生成新的授权参数。结果写入 `dist/canvas-stderr.log`，以 `browser-requested`、`callback-validated`、`token-exchanged` 和 `identity-verified` 标记阶段。凭据仅用于本次验证，进程不保存会话。
+
+2026-11-19 用户确认 I1 验收通过。实际验证在 macOS 27.0.1 arm64 使用 `app.kodma.canvas` 验证包。系统认证会话在 Chrome 打开测试域名的 Kodma Canvas 登录页。用户完成登录后，App 依次确认回跳校验、授权码兑换和身份校验通过。macOS 14.0 为 bundle 声明的最低版本，尚未在该版本实测。App 构建、113 项 App 测试和 App Clippy 通过。新增用例覆盖回跳 URI、旧或错误 state、错误 issuer、PKCE、Discovery 同源和令牌校验。

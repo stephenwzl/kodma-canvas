@@ -197,8 +197,19 @@ fn complete(gateway: &Gateway, task: &str, request: &str, messages: &[Value]) ->
         .into();
     let body = json!({
         "model":MODEL,"messages":messages,"stream":true,"stream_options":{"include_usage":true},"max_tokens":256,
-        "tools":[{"type":"function","function":{"name":EDIT,"description":"Set the fill on the selected Canvas layer.",
-            "parameters":{"type":"object","properties":{"fill":{"type":"string"}},"required":["fill"],"additionalProperties":false}}}]
+        "tools": [{
+            "type": "function",
+            "function": {
+                "name": EDIT,
+                "description": "Set the fill color of the pinned Canvas selection.",
+                "parameters": {
+                    "type": "object",
+                    "properties": { "fill": { "type": "string" } },
+                    "required": ["fill"],
+                    "additionalProperties": false
+                }
+            }
+        }]
     })
     .to_string();
     // No automatic retries. An uncertain result must not start another charged model call.

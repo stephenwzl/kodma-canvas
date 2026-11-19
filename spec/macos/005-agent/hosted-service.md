@@ -15,7 +15,8 @@
 | Kodma Account | 登录与令牌签发，以及通用会员、RevenueCat 身份映射、共享额度、原子预留和用量结算。 |
 | RevenueCat | 统一处理 App Store 和 Google Play 验购及订阅状态。 |
 | 各产品 API | 校验本产品的 Kodma 访问令牌，通过受信任的服务间调用传递已验证的账号身份及产品标识。Canvas 先复用 S006 的受众。 |
-| 推理网关 | 持有模型密钥、转发 SSE 和调用模型。调用 Account 的权益和额度接口，在上游结束后回写实际用量。 |
+| 推理网关 | 持有模型密钥，代理单轮模型请求并转发 SSE。调用 Account 的权益和额度接口，在上游结束后回写实际用量。 |
+| Canvas 客户端 harness | Rust Pi 在 Mac 上维护对话和模型上下文，提供画布工具定义，接收工具调用并交给本机 FigCraft 执行，携带工具结果发起下一轮。 |
 
 Canvas API 对接推理网关。会员和额度由 Account 内的独立模块按账号统一管理，流水记录来源产品。内部 API、幂等结算和验收以 Account 仓库的[通用会员与共享额度接入规格](../../../../kodma-account/docs/kodma-ai-membership-spec.md)为准。
 
@@ -26,7 +27,7 @@ Canvas API 对接推理网关。会员和额度由 Account 内的独立模块按
 1. Apple 和 Google Play 的 Kodma AI 订阅商品放在同一个 RevenueCat Project，映射到 `kodma_ai`。购买入口在 Kodma 登录后启用。Kodma Account 为 `(issuer, sub)` 分配并保存稳定的随机 UUID。所有购买端为同一个 Kodma 账号使用这个 RevenueCat App User ID。切换 Kodma 账号时，购买端切换 RevenueCat 身份后才允许购买或恢复。
 2. 恢复购买采用 RevenueCat 的 `Keep with original App User ID`。首轮验证同一 Kodma 账号恢复成功、另一 Kodma 账号恢复同一购买时无法获得权益。首轮用隔离的测试配置和商店沙盒，正式权益仅接受生产购买。
 3. 产品 API 校验 Kodma access token 的签名、`iss`、自身的 `aud`、有效期和 `kodma:access` scope。Canvas 测试 API 沿用 `https://canvas-api-test.kodma.app` 受众，其他产品使用各自登记的受众。Account 通过受信调用取得已验证的 `(issuer, sub)` 和来源产品，由 Account 查询 RevenueCat。Mac 如仅消费权益，只需使用 S006 的账号会话调用 Canvas API。
-4. 推理网关发起托管任务时调用 Account 实时查询 `kodma_ai`。有效才允许启动，查不到或查验失败时在调用模型前返回可区分的错误。对话的后续模型轮次复用服务端记录的短时任务授权，授权绑定发起账号和来源产品，最长到权益有效期，且受任务最长时长限制。首次联调可给隔离测试账号发放带到期时间的测试权益，沙盒验收须使用实际商店购买产生的权益。缓存和 webhook 等到有延迟或调用量需求再接入。
+4. 客户端发起 Agent 任务。首轮模型请求到达网关时，网关调用 Account 实时查询 `kodma_ai`。有效才代理该请求，查不到或查验失败时在调用模型前返回可区分的错误。对话的后续模型轮次由客户端发起，复用服务端记录的短时任务授权。授权绑定发起账号和来源产品，最长到权益有效期，且受任务最长时长限制。首次联调可给隔离测试账号发放带到期时间的测试权益，沙盒验收须使用实际商店购买产生的权益。缓存和 webhook 等到有延迟或调用量需求再接入。
 
 [Kodma Account 接入契约](../006-kodma-account/spec.md#测试环境与接入契约) · [RevenueCat 用户身份](https://www.revenuecat.com/docs/customers/identifying-customers) · [恢复购买规则](https://www.revenuecat.com/docs/projects/restore-behavior) · [RevenueCat 服务端查询](https://www.revenuecat.com/docs/api-v2/customer/resources)
 

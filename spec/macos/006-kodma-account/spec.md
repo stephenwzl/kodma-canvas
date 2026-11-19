@@ -26,13 +26,13 @@
 
 ## 测试环境与接入契约
 
-1. **客户端登记**。为 Canvas macOS 测试构建单独登记公共客户端，确认产品名、平台、Bundle ID、`client_id`、精确 `redirect_uri` 与 `resource`。现有 `kodma-canvas-test` 和 `kodma-frame-test` 是网页测试客户端，可作为对照。Mac App 不内置客户端密钥。
-2. **回跳方式**。I1 先核对 Kodma Canvas 实际支持的最低 macOS 版本。当前 [Kodma 验证脚本](../../../script/build_and_run.sh)的 bundle 标注 14.0，[通用 FigCraft 打包模板](../../../packaging/macos/Info.plist.in)标注 11.0。优先评估可由系统关联到 Canvas bundle 的 HTTPS 回跳，核对最低版本、测试域名与签名条件。I1 确认可用方式后再定 URI 并登记，不因本功能擅自提高系统门槛。
+1. **客户端登记**。Canvas macOS 测试构建使用独立公共客户端 `kodma-canvas-macos-test`，显示名为 Kodma Canvas，平台为 macOS，`resource` 为 `https://canvas-api-test.kodma.app`。客户端认证方式为 `none`，允许授权码和刷新，要求 PKCE。网页客户端 `kodma-canvas-test` 和 `kodma-frame-test` 可作为对照。
+2. **应用身份与回跳**。[Kodma 验证包](../../../script/build_and_run.sh)固定 Bundle ID 为 `app.kodma.canvas`，最低版本为 macOS 14.0。回跳使用 `ASWebAuthenticationSession` 和精确 URI `app.kodma.canvas:/oauth/callback`。Mac 原生回跳和覆盖安装后的钥匙串会话列入后续实测。
 3. **浏览器授权**。构建固定测试 issuer，从 Discovery 获取授权、令牌、JWKS 与撤销端点，校验 Discovery 返回的 issuer。采用授权码和 PKCE S256，每次独立生成 `state`、`nonce` 和 verifier。scope 为 `openid offline_access kodma:access`，使用登记的 `resource`。Discovery 当前未声明客户端认证方式 `none`，接入需明确按公开客户端换码与刷新，实测兼容性。
 4. **回跳和身份**。仅处理匹配当前登录流程、登记 URI、`state` 与 `iss` 的回跳。校验 ID Token 的 ES256 签名、`iss`、`aud`、有效期与本次 `nonce`，并按服务契约核对访问令牌的受众和 `sub`。以可信的 `sub` 作为测试环境的 Kodma 用户 ID。邮箱仅用于登录和显示。取消、超时、退出或重试后，使旧回调和迟到响应失效。
 5. **会话生命周期**。刷新凭据按 issuer、客户端与当前会话存入 macOS 钥匙串。每个会话串行刷新，成功后保存轮换凭据。刷新结果不明时避免反复发送旧凭据。退出与刷新协调，防止旧请求恢复本机已退出的会话。日志只记录产品、环境、阶段、请求 ID 和错误类别。截图与日志都避开邮箱验证码、授权码、回调完整 URL、Cookie 和令牌。
 
-2026-11-19 已读取公网测试 Discovery，确认 issuer、四个端点和 PKCE S256。服务方已用两个网页测试客户端验证真实邮箱收码、登录复用与会话撤销。Canvas 原生客户端登记、回跳及钥匙串仍待实施和验收。
+2026-11-19 已读取公网测试 Discovery，确认 issuer、四个端点和 PKCE S256。服务方已用两个网页测试客户端验证真实邮箱收码、登录复用与会话撤销。Canvas macOS 客户端已登记到测试环境，公网授权请求可打开账号登录页。账号服务的隔离测试已验证自定义 scheme 的授权码兑换和刷新。Mac 原生回跳及钥匙串仍待实施和验收。
 
 ## 实施顺序与验收
 

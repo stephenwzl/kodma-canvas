@@ -129,9 +129,9 @@ Kodma canvas selection outlines use `canvas/selection` (violet `#6738EF`). Apply
   `app.set_props(ids, props)`. Colours come from `theme::Tokens`.
 - **Never break wasm** (`cargo xtask wasm`).
 
-### Quality gates (before every commit)
-`cargo xtask ci` (fmt, clippy -D warnings, tests, layers, assets, wasm). One task per commit with a
-milestone id in the message (`M2.1: auto layout wrap`). Commit after every landed arc of work.
+### Commits
+One task per commit with a milestone id in the message (`M2.1: auto layout wrap`).
+Commit after every landed arc of work.
 
 ## Running and inspecting the FigCraft reference host
 - `cargo run -p figcraft -- --control <port> [file.figcraft|file.svg|image]`. Pick a free port

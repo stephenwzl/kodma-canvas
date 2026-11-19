@@ -291,10 +291,10 @@ impl Controls {
             self.search_plate.setFrame(rect(26., height - 232., 190., 44.));
             self.search.setFrame(rect(40., height - 224., 160., 28.));
             self.open.title("打开稿件…");
-            self.open.frame(26., 32., 190., 44.);
+            self.open.frame(26., 62., 190., 44.);
             self.open.leading();
-            self.error.setFrame(rect(26.0, 16.0, 190.0, 180.0));
-            let bottom = if self.previous_error.is_some() { 208.0 } else { 140.0 };
+            self.error.setFrame(rect(26.0, 116.0, 190.0, 88.0));
+            let bottom = if self.previous_error.is_some() { 218.0 } else { 140.0 };
             let list_top = if is_home { 278. } else { 177. };
             let bottom = if is_home { bottom } else { height - 340. };
             let viewport = (height - list_top - bottom).max(1.0);

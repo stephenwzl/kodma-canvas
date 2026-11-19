@@ -1,4 +1,5 @@
-use super::{Attempt, CLIENT_ID, Discovery, Error, ISSUER, Metadata, REDIRECT_URI, RESOURCE, SCOPES, endpoint};
+use super::{Attempt, CLIENT_ID, Discovery, Error, ISSUER, LoginGate, Metadata, REDIRECT_URI, RESOURCE, SCOPES, endpoint, wait_for_browser};
+use std::time::Duration;
 use url::{Url, form_urlencoded};
 
 fn callback(uri: &str, state: &str, issuer: &str) -> String {
@@ -94,4 +95,22 @@ fn discovery_pins_the_issuer_and_endpoint_origin() {
         let bad = Metadata { token_endpoint: token.into(), ..metadata() };
         assert_eq!(Discovery::from_metadata(bad).err(), Some(Error::Discovery));
     }
+}
+
+#[test]
+fn cancelled_browser_results_cannot_be_committed() {
+    let gate = LoginGate::default();
+    assert!(gate.cancel());
+    assert_eq!(wait_for_browser(std::future::ready("late-callback"), Some(&gate), Duration::from_secs(1)), Err(Error::Cancelled));
+    assert!(!gate.begin_commit());
+
+    let gate = LoginGate::default();
+    assert!(gate.begin_commit());
+    assert!(!gate.cancel());
+    assert!(!gate.cancelled());
+}
+
+#[test]
+fn a_browser_that_never_returns_times_out() {
+    assert_eq!(wait_for_browser(std::future::pending::<()>(), None, Duration::from_millis(1)), Err(Error::Timeout));
 }

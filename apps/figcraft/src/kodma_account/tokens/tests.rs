@@ -48,8 +48,8 @@ impl Signer {
     }
 
     fn check(&self, id: Value, access: Value) -> Result<(), Error> {
-        let tokens = TokenResponse { id_token: self.token(id, "JWT"), access_token: self.token(access, "at+jwt") };
-        verify_at(&tokens, &self.keys, NONCE, NOW)
+        let tokens = TokenResponse { id_token: Some(self.token(id, "JWT")), access_token: self.token(access, "at+jwt"), refresh_token: None };
+        verify_at(&tokens, &self.keys, NONCE, NOW).map(|_| ())
     }
 }
 
@@ -58,10 +58,12 @@ fn verifies_signed_tokens_and_rejects_the_wrong_signing_key() {
     let signer = Signer::new();
     assert_eq!(signer.check(id_claims(), access_claims()), Ok(()));
     let other = Signer::new();
-    let tokens = TokenResponse { id_token: other.token(id_claims(), "JWT"), access_token: signer.token(access_claims(), "at+jwt") };
-    assert_eq!(verify_at(&tokens, &signer.keys, NONCE, NOW), Err(Error::IdToken));
-    let tokens = TokenResponse { id_token: signer.token(id_claims(), "JWT"), access_token: other.token(access_claims(), "at+jwt") };
-    assert_eq!(verify_at(&tokens, &signer.keys, NONCE, NOW), Err(Error::AccessToken));
+    let tokens =
+        TokenResponse { id_token: Some(other.token(id_claims(), "JWT")), access_token: signer.token(access_claims(), "at+jwt"), refresh_token: None };
+    assert_eq!(verify_at(&tokens, &signer.keys, NONCE, NOW).map(|_| ()), Err(Error::IdToken));
+    let tokens =
+        TokenResponse { id_token: Some(signer.token(id_claims(), "JWT")), access_token: other.token(access_claims(), "at+jwt"), refresh_token: None };
+    assert_eq!(verify_at(&tokens, &signer.keys, NONCE, NOW).map(|_| ()), Err(Error::AccessToken));
 }
 
 #[test]
@@ -83,4 +85,21 @@ fn rejects_unbound_identity_and_access_claims_even_with_valid_signatures() {
         access[claim] = invalid;
         assert_eq!(signer.check(id_claims(), access), Err(error));
     }
+}
+
+#[test]
+fn a_refresh_must_belong_to_the_saved_identity() {
+    let signer = Signer::new();
+    let identity = super::Identity { sub: "test-user".into(), email: None, expires_at: NOW, login_nonce: NONCE.into() };
+    let mut tokens =
+        TokenResponse { id_token: None, access_token: signer.token(access_claims(), "at+jwt"), refresh_token: Some("rotated-token".into()) };
+    assert_eq!(super::verify_refresh_at(&tokens, &signer.keys, &identity, NOW), Ok(NOW + 300));
+    let mut other_identity = id_claims();
+    other_identity["sub"] = json!("someone-else");
+    tokens.id_token = Some(signer.token(other_identity, "JWT"));
+    assert_eq!(super::verify_refresh_at(&tokens, &signer.keys, &identity, NOW), Err(Error::SubjectMismatch));
+    let mut old_nonce = id_claims();
+    old_nonce["nonce"] = json!("previous-attempt");
+    tokens.id_token = Some(signer.token(old_nonce, "JWT"));
+    assert_eq!(super::verify_refresh_at(&tokens, &signer.keys, &identity, NOW), Err(Error::IdToken));
 }

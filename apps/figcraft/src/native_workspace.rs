@@ -12,6 +12,7 @@ use objc2_foundation::{NSPoint, NSRect, NSSize, NSString};
 use figcraft_ui_egui::CanvasHost;
 use figcraft_ui_egui::workspace::Snapshot;
 
+mod account;
 mod draft_dialog;
 mod edit_menu;
 mod hero;
@@ -48,6 +49,7 @@ pub struct Host {
     navigation: navigation::Navigation,
     drafts: Retained<NSTextField>,
     controls: home::Controls,
+    account: Option<account::Account>,
     edit_menu: Option<edit_menu::Menu>,
     tabs: tabs::Tabs,
     design: Retained<NSTextField>,
@@ -58,7 +60,7 @@ pub struct Host {
 }
 
 impl Host {
-    pub fn install(title: &str, alert: rfd::AsyncMessageDialog) -> Result<Self, String> {
+    pub fn install(title: &str, alert: rfd::AsyncMessageDialog, account_enabled: bool) -> Result<Self, String> {
         let mtm = MainThreadMarker::new().ok_or("native workspace requires the main thread")?;
         let windows = NSApplication::sharedApplication(mtm).windows();
         let mut candidates = windows.iter().filter(|window| window.title().to_string() == title);
@@ -90,6 +92,7 @@ impl Host {
         }
         let toolbar = toolbar::Toolbar::install(mtm, &canvas)?;
         let controls = home::Controls::install(mtm, &left, &top, &window, &canvas)?;
+        let account = account_enabled.then(|| account::Account::install(mtm, &canvas)).transpose()?;
         window.setAutorecalculatesKeyViewLoop(true);
         window.recalculateKeyViewLoop();
         window.makeFirstResponder(Some(&canvas));
@@ -107,6 +110,7 @@ impl Host {
             navigation,
             drafts,
             controls,
+            account,
             edit_menu: None,
             tabs,
             design,
@@ -133,6 +137,23 @@ impl Host {
     ) -> Vec<figcraft_ui_egui::workspace::Action> {
         if self.controls.modal() {
             return self.controls.take_actions();
+        }
+        if let Some(account) = &mut self.account {
+            let modal = account.is_open();
+            account.tick(&self.window, &self.canvas);
+            if modal {
+                if let Some(menu) = &mut self.edit_menu {
+                    // Keep the system Quit and Minimize commands active without dispatching edits.
+                    let _ = menu.actions(ctx);
+                }
+                return Vec::new();
+            }
+            if self.navigation.settings_pressed() {
+                // Follow the existing navigation focus rule for unconfirmed property text.
+                let _ = self.properties.take_commit(inspector, true);
+                account.open(&self.window);
+                return Vec::new();
+            }
         }
         let mut actions = self.edit_menu.as_mut().map(|m| m.actions(ctx)).unwrap_or_default();
         actions.extend(self.toolbar.actions());
@@ -164,7 +185,8 @@ impl Host {
         inspector: figcraft_ui_egui::workspace_properties::Inspector,
     ) -> CanvasHost {
         if let Some(menu) = &self.edit_menu {
-            menu.owner(if snapshot.home || snapshot.busy { None } else { snapshot.active });
+            let account_open = self.account.as_ref().is_some_and(account::Account::is_open);
+            menu.owner(if snapshot.home || snapshot.busy || account_open { None } else { snapshot.active });
         }
         let bounds = self.canvas.bounds();
         let w = bounds.size.width;
@@ -202,7 +224,10 @@ impl Host {
             w,
             h,
         );
-        self.navigation.sync(&snapshot, w, h);
+        self.navigation.sync(&snapshot, w, h, self.account.is_some());
+        if let Some(account) = &mut self.account {
+            account.layout(w, h);
+        }
         self.hero.layout(w - LEFT, h - TOP);
         self.toolbar.sync(&snapshot, w - LEFT - right, h, self.canvas.isFlipped());
         self.tabs.sync(&snapshot, (w - LEFT).max(0.0));
@@ -215,7 +240,7 @@ impl Host {
             right_inset: right as f32,
             respect_home: true,
             keyboard: canvas_keyboard(
-                self.window.isKeyWindow() && !busy && !self.controls.modal(),
+                self.window.isKeyWindow() && !busy && !self.controls.modal() && !self.account.as_ref().is_some_and(account::Account::is_open),
                 self.window.firstResponder().is_some_and(|r| std::ptr::eq::<NSResponder>(&*r, &**self.canvas)),
             ),
         }

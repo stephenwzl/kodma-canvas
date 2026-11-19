@@ -213,8 +213,8 @@ fn main() -> eframe::Result {
     }
     let args = args::parse(&args);
     let mut logger = env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn"));
-    if args.validate_kodma_account {
-        // HTTP trace logs can include sensitive headers. The account probe logs stages itself.
+    if args.native_workspace && cfg!(target_os = "macos") {
+        // HTTP trace logs can include sensitive headers. The account flow logs stages itself.
         logger.filter_module("ureq", log::LevelFilter::Off).filter_module("ureq_proto", log::LevelFilter::Off);
     }
     logger.init();
@@ -403,7 +403,7 @@ fn main() -> eframe::Result {
             let mut native_workspace = if args.native_workspace {
                 let window = cc.winit_window().ok_or_else(|| std::io::Error::other("native workspace requires a winit window"))?;
                 Some(
-                    native_workspace::Host::install(&window.title(), rfd::AsyncMessageDialog::new().set_parent(window))
+                    native_workspace::Host::install(&window.title(), rfd::AsyncMessageDialog::new().set_parent(window), !args.validate_kodma_account)
                         .map_err(std::io::Error::other)?,
                 )
             } else {

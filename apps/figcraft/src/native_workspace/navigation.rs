@@ -9,7 +9,7 @@ pub(super) struct Navigation {
     layers_title: Retained<NSTextField>,
     add_page: style::Button,
     owner: Option<u64>,
-    account: style::Button,
+    settings: style::Button,
     rules: Vec<Retained<NSBox>>,
     design: Retained<NSBox>,
     agent: style::Button,
@@ -30,10 +30,10 @@ impl Navigation {
         nav.addSubview(&layers_title);
         let add_page = style::Button::new(mtm, &nav, "", 0xf7f5f2, None, 0.);
         add_page.icon("plus", 0x736e69);
-        let account = style::Button::new(mtm, &nav, "我的账户", 0xf7f5f2, None, 12.);
-        account.icon("grid", 0x736e69);
-        account.leading();
-        account.enabled(false);
+        let settings = style::Button::new(mtm, &nav, "设置", 0xf7f5f2, None, 12.);
+        settings.icon("settings", 0x736e69);
+        settings.leading();
+        settings.view.setHidden(true);
         let mut rules = Vec::new();
         for _ in 0..2 {
             let rule = panel(mtm, 0xdfdcd8);
@@ -56,7 +56,7 @@ impl Navigation {
         tabs.addSubview(&top_rule);
         let edge = panel(mtm, 0xdfdcd8);
         inspector.addSubview(&edge);
-        Ok(Self { page_title, tree, layers_title, add_page, owner: None, account, rules, design, agent, share, header_rule, top_rule, edge })
+        Ok(Self { page_title, tree, layers_title, add_page, owner: None, settings, rules, design, agent, share, header_rule, top_rule, edge })
     }
     pub fn actions(&mut self) -> Vec<figcraft_ui_egui::workspace::Action> {
         let mut actions = self.tree.actions();
@@ -67,20 +67,24 @@ impl Navigation {
         }
         actions
     }
-    pub fn sync(&mut self, s: &Snapshot, w: f64, h: f64) {
+    pub fn settings_pressed(&self) -> bool {
+        self.settings.pressed()
+    }
+    pub fn sync(&mut self, s: &Snapshot, w: f64, h: f64, account_enabled: bool) {
         self.owner = if s.home { None } else { s.active };
         let divider = self.tree.sync(s, h);
         self.page_title.setHidden(s.home);
         self.layers_title.setHidden(s.home);
         self.add_page.view.setHidden(s.home);
         self.add_page.enabled(!s.busy);
-        self.account.view.setHidden(true);
+        self.settings.view.setHidden(!account_enabled);
+        self.settings.enabled(account_enabled && !s.busy);
         self.agent.view.setHidden(true);
         self.share.view.setHidden(true);
         self.page_title.setFrame(rect(36., h - 142., 140., 26.));
         self.add_page.frame(185., h - 148., 36., 36.);
         self.layers_title.setFrame(rect(36., h - divider - 48., 150., 26.));
-        self.account.frame(26., 32., 160., 44.);
+        self.settings.frame(26., 16., 190., 40.);
         for (index, rule) in self.rules.iter().enumerate() {
             rule.setHidden(s.home || index == 1);
             rule.setFrame(rect(26., if index == 0 { h - divider } else { 104. }, 190., 1.));

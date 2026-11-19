@@ -59,13 +59,14 @@ fmv-macos-events = "=0.1.0"
 frust-auth-session = "=0.6.6"
 base64 = { workspace = true }
 ring = "0.17"
+security-framework = "3.7"
 serde = { workspace = true }
 sha2 = { workspace = true }
 ureq = "3.5"
 url = "2"
 # Paste reads the clipboard's public.png as is, keeping the screen density a screenshot records.
 objc2 = { version = "0.6", default-features = false, features = ["std"] }
-objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSPasteboard", "NSApplication", "NSWindow", "NSView", "NSResponder", "NSControl", "NSTextField", "NSSlider", "NSCell", "NSPopUpButton", "NSTextInputContext", "NSText", "NSMenu", "NSMenuItem", "NSBox", "NSColor", "NSFont", "NSButton", "NSButtonCell", "NSScrollView", "NSClipView", "NSTextView", "NSTextInputClient", "NSAppearance", "NSEvent", "NSImage", "NSImageView", "NSParagraphStyle"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSAccessibilityProtocols", "NSPasteboard", "NSApplication", "NSWindow", "NSView", "NSResponder", "NSControl", "NSTextField", "NSSlider", "NSCell", "NSPopUpButton", "NSTextInputContext", "NSText", "NSMenu", "NSMenuItem", "NSBox", "NSColor", "NSFont", "NSButton", "NSButtonCell", "NSScrollView", "NSClipView", "NSTextView", "NSTextInputClient", "NSAppearance", "NSEvent", "NSImage", "NSImageView", "NSParagraphStyle"] }
 objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSData", "NSString", "NSArray", "NSGeometry", "NSFileManager", "NSURL", "NSError"] }
 # A macOS app menu whose Quit (⌘Q) asks the app first (sends the root window a close request, the
 # same guarded path as the close button); winit's default Quit ends the process through

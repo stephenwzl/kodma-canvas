@@ -4,7 +4,7 @@ Kodma 是一个以稿件为单位的 AI 画布工作区，当前优先推进 mac
 
 ## 当前进展
 
-macOS 的 S001 / S002 已验收关闭，[S003](spec/macos/003-drafts-files-ui/progress.md)本地稿件与原生工作区已由用户验收通过并结项，macOS 下一步优先接入现有 Kodma Account，[Mac Agent S005](spec/macos/005-agent/spec.md)挂起。[Web S004 v1.2](spec/web/004-web-cloudflare/spec.md)继续暂停。
+macOS 的 S001、S002 和 [S003](spec/macos/003-drafts-files-ui/progress.md) 已验收结项。[S006 Kodma Account](spec/macos/006-kodma-account/spec.md) 已在测试环境验收结项，生产接入暂缓。[Mac Agent S005](spec/macos/005-agent/spec.md)挂起。[Web S004 v1.2](spec/web/004-web-cloudflare/spec.md)继续暂停。
 
 | 想了解什么 | 从这里开始 |
 | --- | --- |

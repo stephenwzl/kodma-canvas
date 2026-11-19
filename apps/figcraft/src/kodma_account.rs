@@ -1,12 +1,16 @@
-//! S006 one-shot validation of the native account flow against the test issuer.
+//! Kodma Canvas account protocol for the test issuer.
 
+mod session;
 #[cfg(test)]
 mod tests;
 mod tokens;
 
+pub use session::{Action, Controller, Problem, Status};
+
 use std::future::Future;
 use std::pin::pin;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::task::{Context, Poll, Wake, Waker};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -18,7 +22,7 @@ use serde::{Deserialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 use url::{Url, form_urlencoded};
 
-const ISSUER: &str = "https://account-test.kodma.app";
+pub(crate) const ISSUER: &str = "https://account-test.kodma.app";
 const CLIENT_ID: &str = "kodma-canvas-macos-test";
 const RESOURCE: &str = "https://canvas-api-test.kodma.app";
 const CALLBACK_SCHEME: &str = "app.kodma.canvas";
@@ -44,12 +48,13 @@ enum Error {
     AccessToken,
     SubjectMismatch,
     Clock,
+    MissingRefresh,
 }
 
 pub fn start_validation() {
     if thread::Builder::new()
         .name("kodma-account-validation".into())
-        .spawn(|| match validate_login() {
+        .spawn(|| match login(None).map(|_| ()) {
             Ok(()) => eprintln!("Kodma Canvas account-test: identity-verified"),
             Err(error) => eprintln!("Kodma Canvas account-test: {error:?}"),
         })
@@ -59,14 +64,45 @@ pub fn start_validation() {
     }
 }
 
-fn validate_login() -> Result<(), Error> {
-    let agent: ureq::Agent = ureq::Agent::config_builder().https_only(true).max_redirects(0).timeout_global(Some(HTTP_TIMEOUT)).build().into();
+fn agent() -> ureq::Agent {
+    ureq::Agent::config_builder().https_only(true).max_redirects(0).http_status_as_error(false).timeout_global(Some(HTTP_TIMEOUT)).build().into()
+}
+
+struct Login {
+    identity: tokens::Identity,
+    refresh_token: Option<String>,
+}
+
+#[derive(Default)]
+struct LoginGate(AtomicU8);
+
+impl LoginGate {
+    // Cancel and committing the verified session race for this one transition.
+    // A successful cancel forbids persistence. A commit already in progress can
+    // only be undone by signing out, including while Keychain shows a prompt.
+    fn cancel(&self) -> bool {
+        self.0.compare_exchange(0, 1, Ordering::AcqRel, Ordering::Acquire).is_ok()
+    }
+
+    fn begin_commit(&self) -> bool {
+        self.0.compare_exchange(0, 2, Ordering::AcqRel, Ordering::Acquire).is_ok()
+    }
+
+    fn cancelled(&self) -> bool {
+        self.0.load(Ordering::Acquire) == 1
+    }
+}
+
+fn login(cancel: Option<&LoginGate>) -> Result<Login, Error> {
+    check_cancel(cancel)?;
+    let agent = agent();
     let discovery = Discovery::fetch(&agent)?;
+    check_cancel(cancel)?;
     let attempt = Attempt::new()?;
     let request =
         AuthSessionRequest { url: attempt.authorization_url(discovery.authorization), callback_scheme: CALLBACK_SCHEME.into(), ephemeral: false };
     eprintln!("Kodma Canvas account-test: browser-requested");
-    let response = wait_for_browser(AuthSession::start(request)).ok_or(Error::Timeout)?.map_err(|_| Error::Browser)?;
+    let response = wait_for_browser(AuthSession::start(request), cancel, BROWSER_TIMEOUT)?.map_err(|_| Error::Browser)?;
     let callback = match response {
         AuthSessionOutcome::Callback(callback) => callback,
         AuthSessionOutcome::Cancelled => return Err(Error::Cancelled),
@@ -74,10 +110,32 @@ fn validate_login() -> Result<(), Error> {
     };
     let grant = attempt.accept(&callback)?;
     eprintln!("Kodma Canvas account-test: callback-validated");
+    check_cancel(cancel)?;
     let tokens = grant.exchange(&agent, &discovery.token)?;
     eprintln!("Kodma Canvas account-test: token-exchanged");
+    if check_cancel(cancel).is_err() {
+        if let Some(refresh_token) = &tokens.refresh_token {
+            revoke(&agent, &discovery.revocation, refresh_token);
+        }
+        return Err(Error::Cancelled);
+    }
     let keys = fetch_json(&agent, discovery.jwks.as_str()).ok_or(Error::Keys)?;
-    tokens::verify(&tokens, &keys, &grant.nonce)
+    let identity = tokens::verify(&tokens, &keys, &grant.nonce)?;
+    Ok(Login { identity, refresh_token: tokens.refresh_token })
+}
+
+fn check_cancel(cancel: Option<&LoginGate>) -> Result<(), Error> {
+    if cancel.is_some_and(LoginGate::cancelled) {
+        return Err(Error::Cancelled);
+    }
+    Ok(())
+}
+
+fn revoke(agent: &ureq::Agent, endpoint: &Url, refresh_token: &str) -> bool {
+    agent
+        .post(endpoint.as_str())
+        .send_form([("client_id", CLIENT_ID), ("token", refresh_token), ("token_type_hint", "refresh_token")])
+        .is_ok_and(|response| response.status().is_success())
 }
 
 #[derive(Deserialize)]
@@ -94,6 +152,7 @@ struct Discovery {
     authorization: Url,
     token: Url,
     jwks: Url,
+    revocation: Url,
 }
 
 impl Discovery {
@@ -107,11 +166,11 @@ impl Discovery {
         if metadata.issuer != ISSUER || !metadata.code_challenge_methods_supported.iter().any(|method| method == "S256") {
             return Err(Error::Discovery);
         }
-        endpoint(&metadata.revocation_endpoint)?;
         Ok(Self {
             authorization: endpoint(&metadata.authorization_endpoint)?,
             token: endpoint(&metadata.token_endpoint)?,
             jwks: endpoint(&metadata.jwks_uri)?,
+            revocation: endpoint(&metadata.revocation_endpoint)?,
         })
     }
 }
@@ -132,7 +191,11 @@ fn response_json<T: DeserializeOwned>(mut response: ureq::http::Response<ureq::B
     if !response.status().is_success() {
         return None;
     }
-    let body = response.body_mut().with_config().limit(128 * 1024).read_to_vec().ok()?;
+    read_json(response.body_mut())
+}
+
+fn read_json<T: DeserializeOwned>(body: &mut ureq::Body) -> Option<T> {
+    let body = body.with_config().limit(128 * 1024).read_to_vec().ok()?;
     serde_json::from_slice(&body).ok()
 }
 
@@ -242,16 +305,17 @@ impl Wake for WorkerWake {
     }
 }
 
-fn wait_for_browser<F: Future>(future: F) -> Option<F::Output> {
-    let deadline = Instant::now() + BROWSER_TIMEOUT;
+fn wait_for_browser<F: Future>(future: F, cancel: Option<&LoginGate>, timeout: Duration) -> Result<F::Output, Error> {
+    let deadline = Instant::now() + timeout;
     let waker = Waker::from(Arc::new(WorkerWake(thread::current())));
     let mut context = Context::from_waker(&waker);
     let mut future = pin!(future);
     while let Some(remaining) = deadline.checked_duration_since(Instant::now()) {
+        check_cancel(cancel)?;
         match future.as_mut().poll(&mut context) {
-            Poll::Ready(outcome) => return Some(outcome),
-            Poll::Pending => thread::park_timeout(remaining),
+            Poll::Ready(outcome) => return Ok(outcome),
+            Poll::Pending => thread::park_timeout(remaining.min(Duration::from_millis(100))),
         }
     }
-    None
+    Err(Error::Timeout)
 }

@@ -2,14 +2,23 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use ring::signature::{ECDSA_P256_SHA256_FIXED, UnparsedPublicKey};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::{CLIENT_ID, Error, ISSUER, RESOURCE};
 
 #[derive(Deserialize)]
 pub(super) struct TokenResponse {
-    id_token: String,
+    id_token: Option<String>,
     access_token: String,
+    pub refresh_token: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub(super) struct Identity {
+    pub sub: String,
+    pub email: Option<String>,
+    pub expires_at: u64,
+    login_nonce: String,
 }
 
 #[derive(Deserialize)]
@@ -44,6 +53,8 @@ struct Claims {
     nbf: Option<u64>,
     nonce: Option<String>,
     scope: Option<String>,
+    email: Option<String>,
+    email_verified: Option<bool>,
 }
 
 #[derive(Deserialize)]
@@ -62,30 +73,64 @@ impl Audience {
     }
 }
 
-pub(super) fn verify(tokens: &TokenResponse, keys: &KeySet, nonce: &str) -> Result<(), Error> {
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).map_err(|_| Error::Clock)?.as_secs();
-    verify_at(tokens, keys, nonce, now)
+pub(super) fn now() -> Result<u64, Error> {
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).map_err(|_| Error::Clock)
 }
 
-fn verify_at(tokens: &TokenResponse, keys: &KeySet, nonce: &str, now: u64) -> Result<(), Error> {
-    let (id_header, id) = claims(&tokens.id_token, keys, now).ok_or(Error::IdToken)?;
-    if !matches!(id_header.typ.as_deref(), Some("JWT") | None)
-        || !matches!(id.aud.values(), [aud] if aud == CLIENT_ID)
-        || id.nonce.as_deref() != Some(nonce)
-    {
+pub(super) fn verify(tokens: &TokenResponse, keys: &KeySet, nonce: &str) -> Result<Identity, Error> {
+    verify_at(tokens, keys, nonce, now()?)
+}
+
+fn verify_at(tokens: &TokenResponse, keys: &KeySet, nonce: &str, now: u64) -> Result<Identity, Error> {
+    let id = identity_claims(tokens.id_token.as_deref().ok_or(Error::IdToken)?, keys, now)?;
+    if id.nonce.as_deref() != Some(nonce) {
         return Err(Error::IdToken);
     }
-    let (access_header, access) = claims(&tokens.access_token, keys, now).ok_or(Error::AccessToken)?;
+    let access = access_claims(&tokens.access_token, keys, now)?;
+    if access.sub != id.sub {
+        return Err(Error::SubjectMismatch);
+    }
+    Ok(Identity { sub: id.sub, email: id.email.filter(|_| id.email_verified == Some(true)), expires_at: access.exp, login_nonce: nonce.into() })
+}
+
+pub(super) fn verify_refresh(tokens: &TokenResponse, keys: &KeySet, identity: &Identity) -> Result<u64, Error> {
+    verify_refresh_at(tokens, keys, identity, now()?)
+}
+
+fn verify_refresh_at(tokens: &TokenResponse, keys: &KeySet, identity: &Identity, now: u64) -> Result<u64, Error> {
+    let access = access_claims(&tokens.access_token, keys, now)?;
+    if access.sub != identity.sub {
+        return Err(Error::SubjectMismatch);
+    }
+    if let Some(token) = &tokens.id_token {
+        let id = identity_claims(token, keys, now)?;
+        if id.sub != identity.sub {
+            return Err(Error::SubjectMismatch);
+        }
+        if id.nonce.as_deref().is_some_and(|nonce| nonce != identity.login_nonce) {
+            return Err(Error::IdToken);
+        }
+    }
+    Ok(access.exp)
+}
+
+fn identity_claims(token: &str, keys: &KeySet, now: u64) -> Result<Claims, Error> {
+    let (id_header, id) = claims(token, keys, now).ok_or(Error::IdToken)?;
+    if !matches!(id_header.typ.as_deref(), Some("JWT") | None) || !matches!(id.aud.values(), [aud] if aud == CLIENT_ID) {
+        return Err(Error::IdToken);
+    }
+    Ok(id)
+}
+
+fn access_claims(token: &str, keys: &KeySet, now: u64) -> Result<Claims, Error> {
+    let (access_header, access) = claims(token, keys, now).ok_or(Error::AccessToken)?;
     if access_header.typ.as_deref() != Some("at+jwt")
         || !access.aud.values().iter().any(|aud| aud == RESOURCE)
         || !access.scope.as_deref().is_some_and(|scope| scope.split_ascii_whitespace().any(|s| s == "kodma:access"))
     {
         return Err(Error::AccessToken);
     }
-    if access.sub != id.sub {
-        return Err(Error::SubjectMismatch);
-    }
-    Ok(())
+    Ok(access)
 }
 
 fn claims(token: &str, keys: &KeySet, now: u64) -> Option<(Header, Claims)> {

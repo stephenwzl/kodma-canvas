@@ -1,6 +1,6 @@
 # S006 · macOS 接入 Kodma Account
 
-更新日期：2026-11-19。版本 v0.1，规格已由用户确认，I1 已验收通过。以已验收的 [S003 本地工作区](../003-drafts-files-ui/spec.md)为基线，进入 I2。[S005 Agent](../005-agent/spec.md)继续挂起，[Web S004](../../web/004-web-cloudflare/spec.md)继续暂停。
+更新日期：2026-11-19。版本 v0.1。I1、I2、I3 均已由用户验收，S006 在测试环境结项（2026-11-19）。生产接入暂缓。基线为已验收的 [S003 本地工作区](../003-drafts-files-ui/spec.md)。[S005 Agent](../005-agent/spec.md)继续挂起，[Web S004](../../web/004-web-cloudflare/spec.md)继续暂停。
 
 ## 目标与范围
 
@@ -27,12 +27,12 @@
 ## 测试环境与接入契约
 
 1. **客户端登记**。Canvas macOS 测试构建使用独立公共客户端 `kodma-canvas-macos-test`，显示名为 Kodma Canvas，平台为 macOS，`resource` 为 `https://canvas-api-test.kodma.app`。客户端认证方式为 `none`，允许授权码和刷新，要求 PKCE。网页客户端 `kodma-canvas-test` 和 `kodma-frame-test` 可作为对照。
-2. **应用身份与回跳**。[Kodma 验证包](../../../script/build_and_run.sh)固定 Bundle ID 为 `app.kodma.canvas`，最低版本为 macOS 14.0。回跳使用 `ASWebAuthenticationSession` 和精确 URI `app.kodma.canvas:/oauth/callback`。Mac 原生回跳和覆盖安装后的钥匙串会话列入后续实测。
+2. **应用身份与回跳**。[Kodma 验证包](../../../script/build_and_run.sh)固定 Bundle ID 为 `app.kodma.canvas`，最低版本为 macOS 14.0。回跳使用 `ASWebAuthenticationSession` 和精确 URI `app.kodma.canvas:/oauth/callback`。Mac 原生回跳已实测，覆盖安装后的钥匙串会话留待后续验证。
 3. **浏览器授权**。构建固定测试 issuer，从 Discovery 获取授权、令牌、JWKS 与撤销端点，校验 Discovery 返回的 issuer。采用授权码和 PKCE S256，每次独立生成 `state`、`nonce` 和 verifier。scope 为 `openid offline_access kodma:access`，使用登记的 `resource`。Discovery 当前未声明客户端认证方式 `none`，接入需明确按公开客户端换码与刷新，实测兼容性。
 4. **回跳和身份**。仅处理匹配当前登录流程、登记 URI、`state` 与 `iss` 的回跳。校验 ID Token 的 ES256 签名、`iss`、`aud`、有效期与本次 `nonce`，并按服务契约核对访问令牌的受众和 `sub`。以可信的 `sub` 作为测试环境的 Kodma 用户 ID。邮箱仅用于登录和显示。取消、超时、退出或重试后，使旧回调和迟到响应失效。
 5. **会话生命周期**。刷新凭据按 issuer、客户端与当前会话存入 macOS 钥匙串。每个会话串行刷新，成功后保存轮换凭据。刷新结果不明时避免反复发送旧凭据。退出与刷新协调，防止旧请求恢复本机已退出的会话。日志只记录产品、环境、阶段、请求 ID 和错误类别。截图与日志都避开邮箱验证码、授权码、回调完整 URL、Cookie 和令牌。
 
-2026-11-19 已读取公网测试 Discovery，确认 issuer、四个端点和 PKCE S256。服务方已用两个网页测试客户端验证真实邮箱收码、登录复用与会话撤销。Canvas macOS 客户端已登记到测试环境，公网授权请求可打开账号登录页。账号服务的隔离测试已验证自定义 scheme 的授权码兑换和刷新。Mac 原生回跳已通过 I1 验收，钥匙串留到 I2。
+2026-11-19 已读取公网测试 Discovery，确认 issuer、四个端点和 PKCE S256。服务方已用两个网页测试客户端验证真实邮箱收码、登录复用与会话撤销。Canvas macOS 客户端已登记到测试环境，公网授权请求可打开账号登录页。账号服务的隔离测试已验证自定义 scheme 的授权码兑换和刷新。Mac 原生回跳已通过 I1 验收。
 
 ## 实施顺序与验收
 
@@ -49,3 +49,29 @@
 通过 `./script/build_and_run.sh --workspace --validate-kodma-account` 启动一次验证。每次启动生成新的授权参数。结果写入 `dist/canvas-stderr.log`，以 `browser-requested`、`callback-validated`、`token-exchanged` 和 `identity-verified` 标记阶段。凭据仅用于本次验证，进程不保存会话。
 
 2026-11-19 用户确认 I1 验收通过。实际验证在 macOS 27.0.1 arm64 使用 `app.kodma.canvas` 验证包。系统认证会话在 Chrome 打开测试域名的 Kodma Canvas 登录页。用户完成登录后，App 依次确认回跳校验、授权码兑换和身份校验通过。macOS 14.0 为 bundle 声明的最低版本，尚未在该版本实测。App 构建、113 项 App 测试和 App Clippy 通过。新增用例覆盖回跳 URI、旧或错误 state、错误 issuer、PKCE、Discovery 同源和令牌校验。
+
+### I2 验收记录
+
+使用 `./script/build_and_run.sh --workspace` 启动 Mac 验证包，从左下角「设置」打开账号面板。实际窗口查看了未登录、等待浏览器、取消后重新登录、已登录、会话验证与凭据暂不可用状态。当前测试客户端的 scope 未返回邮箱，账号面板显示已验证的 Kodma 用户 ID。取消会作废当前尝试，系统浏览器窗口由 macOS 管理。
+
+在 macOS 27.0.1 arm64 以真实测试账号完成登录并写入钥匙串。正常退出并重启同一签名构建后，App 无需打开浏览器即可恢复登录，测试服务刷新成功，轮换后的凭据再次写入。占用本地会话锁时验证了失败界面。释放锁后点击「重试」，实际恢复登录并再次完成刷新和保存。
+
+最终源码通过 App 构建、118 项 App 单元测试和严格 Clippy。新增测试覆盖重复请求、取消与迟到回调、超时、退出期间旧刷新状态及已签名刷新令牌校验。实测使用同一份 ad-hoc 签名的验证包。2026-11-19 用户确认 I2 验收通过。跨构建覆盖安装、最低 macOS 14.0 与系统拒绝钥匙串访问留待后续验证。
+
+### I3 测试环境联验
+
+2026-11-19 使用 macOS 27.0.1 arm64 验证包、测试域名和 Chrome 中的 Frame 网页测试客户端。Frame 复用了浏览器账号，无需再次收码。账号页在同一账号下同时列出了 Canvas Mac 和 Frame 的独立会话。
+
+| 场景 | 实测结果 |
+| --- | --- |
+| 在账号页撤销本轮 Canvas Mac 会话 | 对应一条 Canvas 会话被移除，其他会话保留。Mac 重启后无法恢复被撤销的会话，面板回到「在浏览器登录」。 |
+| Frame 刷新 | 撤销 Mac 会话后点击 Frame 网页测试页的「Refresh」，刷新成功，身份未变化。 |
+| Mac 在线退出 | Mac 重新登录后从账号面板退出，账号页移除了刚创建的 Mac 会话，Frame 会话仍列在账号页。 |
+| 未登录编辑本地稿件 | 撤销后重启，在同一隔离配置下重开合成稿，核对稿件 ID、名称、路径及已保存图形。移动图形后再次保存成功。 |
+| 离线退出 | 仅阻断验证包访问测试账号服务。App 保留离线会话并允许退出，点击后提示已在本机退出。恢复联网后重启仍是未登录，旧会话没有恢复。 |
+| 换账号后本地稿件 | 用户用第二个测试邮箱完成授权，Mac 显示不同的已验证用户 ID。原合成稿仍在已打开的标签和列表中，稿件 ID、名称、路径、文件校验值和图形内容均与切换前一致。重开并修改图形、保存后正常退出。恢复第二个账号会话后重新打开同一稿件，核对已保存的修改。 |
+| 刷新与退出重叠 | Mac 对测试服务发起定时刷新，用仅作用于验证包的本地转发暂停实际响应。在 `refresh-requested` 后点击退出，观察到 `sign-out-requested`，随后放行响应。App 完成刷新和凭据轮换，再执行在线撤销并退出。确认钥匙串对应条目已清除，已打开稿件和落盘内容均保持一致。App 单元测试覆盖旧刷新状态被丢弃，服务隔离测试也验证目标会话失效且另一会话可继续刷新。 |
+
+在当前工作区复跑了 118 项 App 测试与严格 App Clippy，均通过。账号服务的隔离协议测试也通过。2026-11-19 用户确认 I3 验收通过，S006 测试环境范围结项。
+
+结项提交前复跑 `cargo xtask ci`。格式、全工作区 Clippy 和 118 项 App 测试通过。协作网络的既有用例 `a_share_on_every_interface_names_an_address_others_reach` 超过 60 秒仍未结束，停止该测试进程后 CI 以失败退出，后续检查未执行。文档、分层和资产检查另行通过。
